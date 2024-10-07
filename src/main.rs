@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{env, fs};
 
 use lexer::Lexer;
@@ -11,11 +12,13 @@ fn main() {
     let content = fs::read(file_path.clone()).expect("Failed to read file");
     let mut lexer = Lexer::init(&content, file_path);
     let toks = lexer.run();
-    for e in &lexer.errors {
-        e.print(&content);
+    if lexer.errors.len() != 0 {
+        for e in &lexer.errors {
+            e.print(&content);
+            println!();
+        }
     }
     if lexer.errors.len() != 0 {
-        println!();
         error::print_str_colored("error", error::Color::Red);
         println!(": exiting due to {} error{}", lexer.errors.len(), {
             if lexer.errors.len() > 1 {
