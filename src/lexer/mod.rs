@@ -169,11 +169,13 @@ impl Lexer<'_> {
         }
 
         if r.len() == 0 && self.errors.len() == 0 {
-            self.errors.push(self.err(
+            let mut e = self.err(
                 "No statements found in source file",
                 &format!("consider adding statements to '{}'", self.name),
-                0,
-            ));
+                self.source.len(),
+            );
+            e.start = self.source.len();
+            self.errors.push(e);
             return vec![];
         }
         return r;
