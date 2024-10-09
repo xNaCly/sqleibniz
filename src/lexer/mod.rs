@@ -1,4 +1,5 @@
-use crate::error::{Error, ErrorType};
+use crate::error::Error;
+use crate::rules::Rule;
 use crate::types::{Token, Type};
 
 pub struct Lexer<'a> {
@@ -32,11 +33,11 @@ impl Lexer<'_> {
         self.pos += 1;
     }
 
-    fn err(&self, msg: &str, note: &str, start: usize) -> Error {
+    fn err(&self, msg: &str, note: &str, start: usize, rule: Rule) -> Error {
         Error {
             file: self.name.clone(),
             line: self.line,
-            etype: ErrorType::SyntaxError,
+            rule,
             note: note.into(),
             msg: msg.into(),
             start,
@@ -94,6 +95,7 @@ impl Lexer<'_> {
                 "No content found in source file",
                 &format!("consider adding statements to '{}'", self.name),
                 0,
+                Rule::NoContent,
             ));
             return vec![];
         };
@@ -139,6 +141,7 @@ impl Lexer<'_> {
                                 &format!("Unterminated String in '{}'", self.name),
                                 "Consider adding a \"'\" at the end of this string",
                                 line_start,
+                                Rule::UnterminatedString,
                             );
                             err.end = end + 1;
                             err.line = line;
@@ -170,6 +173,7 @@ impl Lexer<'_> {
                         "Unimplemented: Numbers",
                         "Numbers arent yet implemented",
                         self.line_pos,
+                        Rule::Unimplemented,
                     ));
                 }
                 // blobs, see above
@@ -178,6 +182,7 @@ impl Lexer<'_> {
                         "Unimplemented: Blobs",
                         "Blobs arent yet implemented",
                         self.line_pos,
+                        Rule::Unimplemented,
                     ));
                 }
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
@@ -187,13 +192,12 @@ impl Lexer<'_> {
         }
 
         if r.len() == 0 && self.errors.len() == 0 {
-            let mut e = self.err(
+            self.errors.push(self.err(
                 "No statements found in source file",
                 &format!("consider adding statements to '{}'", self.name),
                 0,
-            );
-            e.etype = ErrorType::EOF;
-            self.errors.push(e);
+                Rule::NoStatements,
+            ));
             return vec![];
         }
         return r;

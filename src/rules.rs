@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Rule {
     /// NoContent is emitted when the source file is empty
     NoContent,
@@ -6,6 +7,8 @@ pub enum Rule {
     /// Unimplemented is emitted when the source file contains constructs sqleibniz does not yet
     /// understand
     Unimplemented,
+    /// Unterminated is emitted when the source file contains unterminated strings
+    UnterminatedString,
 }
 
 // TODO: serialize this via serde, convert strings to enum fields, implement the following of these
@@ -18,5 +21,14 @@ pub struct Config {
 impl Rule {
     pub fn from(s: &str) -> Option<Rule> {
         return None;
+    }
+
+    pub fn to_str(&self) -> &str {
+        match self {
+            Self::NoContent => "NoContent",
+            Self::NoStatements => "NoStatements",
+            Self::Unimplemented => "Unimplemented",
+            Self::UnterminatedString => "UnterminatedString",
+        }
     }
 }

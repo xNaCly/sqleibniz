@@ -1,16 +1,12 @@
 use std::io::BufRead;
 
-#[derive(Debug)]
-pub enum ErrorType {
-    SyntaxError,
-    EOF,
-}
+use crate::rules::Rule;
 
 #[derive(Debug)]
 pub struct Error {
     pub file: String,
     pub line: usize,
-    pub etype: ErrorType,
+    pub rule: Rule,
     pub note: String,
     pub msg: String,
     pub start: usize,
@@ -59,7 +55,12 @@ macro_rules! print_str {
 
 impl Error {
     pub fn print(&mut self, content: &Vec<u8>) {
-        err(&self.msg);
+        print_str_colored("error", Color::Red);
+        print_str!("[");
+        print_str_colored(self.rule.to_str(), Color::Red);
+        print_str!("]: ");
+        print_str!(&self.msg);
+        println!();
 
         if content.len() == 0 {
             return;
@@ -72,8 +73,8 @@ impl Error {
         let lines = content.lines().map(|x| x.unwrap()).collect::<Vec<_>>();
 
         // eof should always highlight the last line
-        match &self.etype {
-            ErrorType::EOF => {
+        match &self.rule {
+            &Rule::NoStatements => {
                 self.line = lines.len() - 1;
                 self.end = 0;
             }
