@@ -1,4 +1,5 @@
 # sqleibniz
+
 A static analysis tool for sql, check syntax errors as well as semantic errors on snippets or full schemata
 
 ## Features
@@ -16,5 +17,26 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 - very pretty errors :^)
   - source location
   - sql syntax highlighting
-  - hints for possible fixes and 
+  - hints for possible fixes and
   - link to the corresponding sqlite page
+
+## Installation
+
+<!-- TODO: -->
+
+```shell
+
+```
+
+## Usage
+
+```shell
+$ sqleibniz <files>
+```
+
+## Configuration
+
+Sqleibniz can be configured via a `leibniz.toml` file, this file has to be
+accessible to sqleibniz by existing at the path sqleibniz is invoked at.
+Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
+[leibniz.toml](./leibniz.toml) for said example.

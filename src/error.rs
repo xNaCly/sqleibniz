@@ -22,6 +22,7 @@ pub enum Color {
     Reset,
     Blue,
     Green,
+    Yellow,
 }
 
 impl Color {
@@ -31,11 +32,17 @@ impl Color {
             Self::Red => "\x1b[31m",
             Self::Blue => "\x1b[94m",
             Self::Green => "\x1b[92m",
+            Self::Yellow => "\x1b[93m",
         }
     }
 }
 
-pub fn print_err_str(s: &str) {
+pub fn warn(s: &str) {
+    print_str_colored("warn", Color::Yellow);
+    println!(": {}\n", s);
+}
+
+pub fn err(s: &str) {
     print_str_colored("error", Color::Red);
     println!(": {}\n", s);
 }
@@ -52,7 +59,7 @@ macro_rules! print_str {
 
 impl Error {
     pub fn print(&mut self, content: &Vec<u8>) {
-        print_err_str(&self.msg);
+        err(&self.msg);
 
         if content.len() == 0 {
             return;
