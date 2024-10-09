@@ -4,6 +4,7 @@ use crate::types::{Token, Type};
 pub struct Lexer<'a> {
     pos: usize,
     line: usize,
+    line_pos: usize,
     name: String,
     source: &'a Vec<u8>,
     pub errors: Vec<Error>,
@@ -14,10 +15,21 @@ impl Lexer<'_> {
         Lexer {
             pos: 0,
             line: 0,
+            line_pos: 0,
             name,
             source,
             errors: vec![],
         }
+    }
+
+    fn advance(&mut self) {
+        if self.is('\n') {
+            self.line += 1;
+            self.line_pos = 0;
+        } else {
+            self.line_pos += 1;
+        }
+        self.pos += 1;
     }
 
     fn err(&self, msg: &str, note: &str, start: usize) -> Error {
@@ -28,7 +40,7 @@ impl Lexer<'_> {
             note: note.into(),
             msg: msg.into(),
             start,
-            end: self.pos,
+            end: self.line_pos,
         }
     }
 
@@ -96,26 +108,19 @@ impl Lexer<'_> {
                 '/' => {
                     if self.next_equals('*') {
                         while !self.is_eof() {
-                            self.pos += 1;
-                            if self.is('\n') {
-                                self.line += 1;
-                            } else if self.is('*') && self.next_equals('/') {
+                            self.advance();
+                            if self.is('*') && self.next_equals('/') {
                                 break;
                             }
                         }
                     }
                 }
-                '\n' => {
-                    self.line += 1;
-                    self.pos += 1;
-                }
                 // comments, see: https://www.sqlite.org/lang_comment.html
                 '-' => {
                     if self.next_equals('-') {
                         while !self.is_eof() {
-                            self.pos += 1;
+                            self.advance();
                             if self.is('\n') {
-                                self.line += 1;
                                 break;
                             }
                         }
@@ -124,15 +129,20 @@ impl Lexer<'_> {
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '\'' => {
                     let start = self.pos;
+                    let line_start = self.line_pos;
                     while !self.is_eof() {
-                        self.pos += 1;
+                        let end = self.line_pos;
+                        let line = self.line;
+                        self.advance();
                         if self.is('\n') || self.is_eof() {
-                            self.line += 1;
-                            self.errors.push(self.err(
+                            let mut err = self.err(
                                 &format!("Unterminated String in '{}'", self.name),
                                 "Consider adding a \"'\" at the end of this string",
-                                start,
-                            ));
+                                line_start,
+                            );
+                            err.end = end + 1;
+                            err.line = line;
+                            self.errors.push(err);
                             break;
                         } else if self.is('\'') {
                             r.push(Token {
@@ -149,32 +159,40 @@ impl Lexer<'_> {
                                 end: self.pos - 1,
                                 start,
                             });
-                            self.pos += 1;
+                            self.advance();
                             break;
                         }
                     }
                 }
                 // number, see above
                 '0'..='9' | '.' => {
-                    todo!("Numbers arent yet implemented")
+                    self.errors.push(self.err(
+                        "Unimplemented: Numbers",
+                        "Numbers arent yet implemented",
+                        self.line_pos,
+                    ));
                 }
                 // blobs, see above
                 'X' | 'x' => {
-                    todo!("Blobs arent yet implemented")
+                    self.errors.push(self.err(
+                        "Unimplemented: Blobs",
+                        "Blobs arent yet implemented",
+                        self.line_pos,
+                    ));
                 }
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
                 _ => {}
             }
-            self.pos += 1;
+            self.advance();
         }
 
         if r.len() == 0 && self.errors.len() == 0 {
             let mut e = self.err(
                 "No statements found in source file",
                 &format!("consider adding statements to '{}'", self.name),
-                self.source.len(),
+                0,
             );
-            e.start = self.source.len();
+            e.etype = ErrorType::EOF;
             self.errors.push(e);
             return vec![];
         }

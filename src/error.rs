@@ -3,6 +3,7 @@ use std::io::BufRead;
 #[derive(Debug)]
 pub enum ErrorType {
     SyntaxError,
+    EOF,
 }
 
 #[derive(Debug)]
@@ -20,6 +21,7 @@ pub enum Color {
     Red,
     Reset,
     Blue,
+    Green,
 }
 
 impl Color {
@@ -27,9 +29,15 @@ impl Color {
         match self {
             Self::Reset => "\x1b[0m",
             Self::Red => "\x1b[31m",
-            Color::Blue => "\x1b[94m",
+            Self::Blue => "\x1b[94m",
+            Self::Green => "\x1b[92m",
         }
     }
+}
+
+pub fn print_err_str(s: &str) {
+    print_str_colored("error", Color::Red);
+    println!(": {}\n", s);
 }
 
 pub fn print_str_colored(s: &str, c: Color) {
@@ -43,11 +51,12 @@ macro_rules! print_str {
 }
 
 impl Error {
-    pub fn print(&self, content: &Vec<u8>) {
-        print_str_colored("error", Color::Red);
-        print_str!(": ");
-        print_str!(self.msg);
-        print_str!('\n');
+    pub fn print(&mut self, content: &Vec<u8>) {
+        print_err_str(&self.msg);
+
+        if content.len() == 0 {
+            return;
+        }
 
         print_str_colored(" => ", Color::Blue);
         print_str!(self.file);
@@ -55,26 +64,44 @@ impl Error {
 
         let lines = content.lines().map(|x| x.unwrap()).collect::<Vec<_>>();
 
-        if let Some(first_line) = lines.get(self.line - 2) {
-            print_str_colored(&format!(" {:02} | ", self.line - 1), Color::Blue);
-            print_str!(first_line);
-            println!()
+        // eof should always highlight the last line
+        match &self.etype {
+            ErrorType::EOF => {
+                self.line = lines.len() - 1;
+                self.end = 0;
+            }
+            _ => (),
         }
 
-        if let Some(sec_line) = lines.get(self.line - 1) {
-            print_str_colored(&format!(" {:02} | ", self.line), Color::Blue);
-            print_str!(sec_line);
-            println!()
+        if self.line >= 2 {
+            if let Some(first_line) = lines.get(self.line - 2) {
+                print_str_colored(&format!(" {:02} | ", self.line - 1), Color::Blue);
+                print_str!(first_line);
+                println!()
+            }
+
+            if let Some(sec_line) = lines.get(self.line - 1) {
+                print_str_colored(&format!(" {:02} | ", self.line), Color::Blue);
+                print_str!(sec_line);
+                println!()
+            }
         }
 
         let offending_line = lines.get(self.line).unwrap();
         print_str_colored(&format!(" {:02} | ", self.line + 1), Color::Blue);
         print_str!(offending_line);
         print_str_colored("\n    |", Color::Blue);
+
+        let mut repeat = 1;
+        if self.end > self.start {
+            repeat = self.end - self.start;
+        }
+
         print_str_colored(
             &format!(
-                " {} error occurs here.\n",
-                "^".repeat(self.end - self.start),
+                " {}{} error occurs here.\n",
+                " ".repeat(self.start),
+                "^".repeat(repeat)
             ),
             Color::Red,
         );
