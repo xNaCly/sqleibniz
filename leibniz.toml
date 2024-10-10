@@ -1,4 +1,5 @@
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
-[leibniz]
-disabled = [ "NoContent", "NoStatements", "Unimplemented" ]
+[disabled] 
+# by default, sqleibniz specific errors are disabled:
+rules = [ "NoContent", "NoStatements", "Unimplemented" ]
