@@ -30,6 +30,9 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 
 ## Usage
 
+
+
+
 ```shell
 $ ./target/release/sqleibniz 
 error: no source file(s) provided, exiting
@@ -74,6 +77,10 @@ error[UnterminatedString]: Unterminated String in 'tests/string.sql'
 
 => 3/4 Files verified successfully, 1 verification failed.
 ```
+
+Screenshot:
+![image](https://github.com/user-attachments/assets/b4e72546-be7e-4a3a-9d8c-fa195de37e65)
+
 
 ## Configuration
 
