@@ -2,4 +2,8 @@
 # documentation
 [disabled] 
 # by default, sqleibniz specific errors are disabled:
-rules = [ "NoContent", "NoStatements", "Unimplemented" ]
+rules = [ 
+    "NoContent",
+    "NoStatements", 
+    "Unimplemented" 
+]

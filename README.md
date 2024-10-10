@@ -94,5 +94,9 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 # documentation
 [disabled] 
 # by default, sqleibniz specific errors are disabled:
-rules = [ "NoContent", "NoStatements", "Unimplemented" ]
+rules = [ 
+    "NoContent",
+    "NoStatements", 
+    "Unimplemented" 
+]
 ```
