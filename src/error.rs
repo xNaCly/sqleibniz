@@ -35,12 +35,12 @@ impl Color {
 
 pub fn warn(s: &str) {
     print_str_colored("warn", Color::Yellow);
-    println!(": {}\n", s);
+    println!(": {}", s);
 }
 
 pub fn err(s: &str) {
     print_str_colored("error", Color::Red);
-    println!(": {}\n", s);
+    println!(": {}", s);
 }
 
 pub fn print_str_colored(s: &str, c: Color) {
