@@ -311,6 +311,10 @@ pub enum Type {
     Ident(String),
     Number(f64),
     String(String),
+    Dot,
+    Asteriks,
+    Semicolon,
+    Comma,
 }
 
 #[derive(Debug)]

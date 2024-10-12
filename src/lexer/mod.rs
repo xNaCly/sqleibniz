@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::rules::Rule;
-use crate::types::{Token, Type};
+use crate::types::{Keyword, Token, Type};
 
 pub struct Lexer<'a> {
     pos: usize,
@@ -52,14 +52,11 @@ impl Lexer<'_> {
         }
     }
 
-    fn is_ident(&self) -> bool {
-        match self.source.get(self.pos) {
-            Some(cc) => match *cc as char {
-                'a'..='z' => true,
-                'A'..='Z' => true,
-                '_' => true,
-                _ => false,
-            },
+    fn is_ident(&self, c: char) -> bool {
+        match c {
+            'a'..='z' => true,
+            'A'..='Z' => true,
+            '_' => true,
             _ => false,
         }
     }
@@ -75,16 +72,33 @@ impl Lexer<'_> {
         self.pos >= self.source.len()
     }
 
-    fn is_sqlite_num(&self) -> bool {
-        match self.source.get(self.pos) {
-            Some(cc) => match *cc as char {
-                // hexadecimal
-                'x' | 'X' => true,
-                // sqlite allows for separating numbers by _
-                '_' => true,
-                _ => false,
-            },
+    fn is_sqlite_num(&self, c: char) -> bool {
+        match c {
+            // hexadecimal
+            'x' | 'X' => true,
+            // sqlite allows for separating numbers by _
+            '_' => true,
+            '0'..='9' => true,
             _ => false,
+        }
+    }
+
+    fn cur(&self) -> char {
+        return self.source[self.pos] as char;
+    }
+
+    fn next(&self) -> Option<char> {
+        match self.source.get(self.pos + 1) {
+            Some(c) => Some(*c as char),
+            _ => None,
+        }
+    }
+
+    fn single(&self, ttype: Type) -> Token {
+        Token {
+            ttype,
+            start: self.pos,
+            end: self.pos,
         }
     }
 
@@ -106,6 +120,8 @@ impl Lexer<'_> {
                 _ => break,
             } as char;
             match cc {
+                // skipping whitespace
+                '\t' | '\r' | ' ' | '\n' => {}
                 // comments, see: https://www.sqlite.org/lang_comment.html
                 '/' => {
                     if self.next_equals('*') {
@@ -162,13 +178,28 @@ impl Lexer<'_> {
                                 end: self.pos - 1,
                                 start,
                             });
-                            self.advance();
                             break;
                         }
                     }
                 }
+                '*' => r.push(self.single(Type::Asteriks)),
+                ';' => r.push(self.single(Type::Semicolon)),
+                ',' => r.push(self.single(Type::Comma)),
                 // number, see above
                 '0'..='9' | '.' => {
+                    if self.is('.') {
+                        // only '.', with no digit following it is an indexing operation
+                        let next = self.next();
+                        if next.is_some() && self.is_ident(next.unwrap()) {
+                            r.push(Token {
+                                ttype: Type::Dot,
+                                start: self.pos,
+                                end: self.pos,
+                            });
+                            self.advance();
+                            continue;
+                        };
+                    }
                     self.errors.push(self.err(
                         "Unimplemented: Numbers",
                         "Numbers arent yet implemented",
@@ -186,6 +217,31 @@ impl Lexer<'_> {
                     ));
                 }
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let start = self.pos;
+                    while self.is_ident(self.cur()) {
+                        self.advance();
+                    }
+                    let ident = String::from_utf8(
+                        self.source
+                            .get(start..self.pos)
+                            .unwrap_or_default()
+                            .to_vec(),
+                    )
+                    .unwrap_or_default();
+                    let t: Type;
+                    if let Some(keyword) = Keyword::from_str(ident.as_str()) {
+                        t = Type::Keyword(keyword);
+                    } else {
+                        t = Type::Ident(ident.clone());
+                    }
+                    r.push(Token {
+                        ttype: t,
+                        start,
+                        end: self.pos,
+                    });
+                    continue;
+                }
                 _ => {}
             }
             self.advance();
