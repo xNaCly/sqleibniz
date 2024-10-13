@@ -304,22 +304,3 @@ impl Keyword {
         })
     }
 }
-
-#[derive(Debug)]
-pub enum Type {
-    Keyword(Keyword),
-    Ident(String),
-    Number(f64),
-    String(String),
-    Dot,
-    Asteriks,
-    Semicolon,
-    Comma,
-}
-
-#[derive(Debug)]
-pub struct Token {
-    pub ttype: Type,
-    pub start: usize,
-    pub end: usize,
-}

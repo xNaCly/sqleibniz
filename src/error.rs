@@ -131,7 +131,7 @@ impl Error {
         print_str!(self.note);
         print_str!('\n');
 
-        print_str_colored(" = ", Color::Blue);
+        print_str_colored("  * ", Color::Blue);
         print_str_colored(self.rule.to_str(), Color::Blue);
         print_str!(": ");
         print_str!(self.rule.description());

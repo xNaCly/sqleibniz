@@ -1,2 +1,2 @@
 'unterminated string
-%
+""

@@ -185,6 +185,7 @@ impl Lexer<'_> {
                 '*' => r.push(self.single(Type::Asteriks)),
                 ';' => r.push(self.single(Type::Semicolon)),
                 ',' => r.push(self.single(Type::Comma)),
+                '%' => r.push(self.single(Type::Percent)),
                 // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
                     // only '.', with no digit following it is an indexing operation
