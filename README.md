@@ -30,56 +30,9 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 
 ## Usage
 
-
-
-
-```shell
-$ ./target/release/sqleibniz 
-error: no source file(s) provided, exiting
-$ ./target/release/sqleibniz tests/*
-warn: Ignoring the following diagnostics, according to 'leibniz.toml':
- -> NoContent
- -> NoStatements
- -> Unimplemented
-=========================== tests/string.sql ===========================
-error[UnterminatedString]: Unterminated String in 'tests/string.sql'
- => tests/string.sql
- 01 | /**/    'string1
-    |         ^^^^^^^^ error occurs here.
- 02 | -- this should work1
- 03 | 'string2'
-    |
-    = note: Consider adding a "'" at the end of this string
-
-error[UnterminatedString]: Unterminated String in 'tests/string.sql'
- => tests/string.sql
- 02 | -- this should work1
- 03 | 'string2'
- 04 | 'string3
-    | ^^^^^^^^ error occurs here.
- 05 | -- this should work2
- 06 | 'string4'
-    |
-    = note: Consider adding a "'" at the end of this string
-=============================== Summary ================================
-[+] tests/comment.sql:
-    0 Error(s) detected
-    1 Error(s) ignored
-[+] tests/empty.sql:
-    0 Error(s) detected
-    1 Error(s) ignored
-[+] tests/select.sql:
-    0 Error(s) detected
-    1 Error(s) ignored
-[-] tests/string.sql:
-    2 Error(s) detected
-    0 Error(s) ignored
-
-=> 3/4 Files verified successfully, 1 verification failed.
-```
-
 Screenshot:
-![image](https://github.com/user-attachments/assets/b4e72546-be7e-4a3a-9d8c-fa195de37e65)
+![image](https://github.com/user-attachments/assets/bb19dba6-1872-4ffa-a04e-e616cf492b40)
+
 
 
 ## Configuration
