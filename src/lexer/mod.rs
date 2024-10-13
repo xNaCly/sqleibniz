@@ -185,10 +185,10 @@ impl Lexer<'_> {
                 '*' => r.push(self.single(Type::Asteriks)),
                 ';' => r.push(self.single(Type::Semicolon)),
                 ',' => r.push(self.single(Type::Comma)),
-                // number, see above
+                // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
+                    // only '.', with no digit following it is an indexing operation
                     if self.is('.') {
-                        // only '.', with no digit following it is an indexing operation
                         let next = self.next();
                         if next.is_some() && self.is_ident(next.unwrap()) {
                             r.push(Token {
@@ -200,6 +200,7 @@ impl Lexer<'_> {
                             continue;
                         };
                     }
+
                     self.errors.push(self.err(
                         "Unimplemented: Numbers",
                         "Numbers arent yet implemented",
@@ -242,7 +243,18 @@ impl Lexer<'_> {
                     });
                     continue;
                 }
-                _ => {}
+                _ => {
+                    let cur = self.cur();
+                    self.errors.push(self.err(
+                        &format!("Unknown character '{}'", cur),
+                        &format!(
+                            "character (ascii: {:#?}, decimal: {}, hex: {:#x}) is unknown at this time",
+                            cur, cur as u8, cur as u8
+                        ),
+                        self.line_pos,
+                        Rule::UnknownCharacter,
+                    ));
+                }
             }
             self.advance();
         }

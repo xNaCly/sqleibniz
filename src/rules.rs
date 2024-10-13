@@ -2,14 +2,16 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub enum Rule {
-    /// NoContent is emitted when the source file is empty
+    /// Source file is empty
     NoContent,
-    /// NoStatements is emitted when the source file is not empty but holds no statements
+    /// Source file is not empty but holds no statements
     NoStatements,
-    /// Unimplemented is emitted when the source file contains constructs sqleibniz does not yet understand
+    /// Source file contains constructs sqleibniz does not yet understand
     Unimplemented,
-    /// Unterminated is emitted when the source file contains unterminated strings
+    /// Source file contains unterminated strings
     UnterminatedString,
+    /// The source file contains characters the lexer does not understand
+    UnknownCharacter,
 }
 
 #[derive(Deserialize, Debug)]
@@ -30,6 +32,21 @@ impl Rule {
             Self::NoStatements => "NoStatements",
             Self::Unimplemented => "Unimplemented",
             Self::UnterminatedString => "UnterminatedString",
+            Self::UnknownCharacter => "UnknownCharacter",
+        }
+    }
+
+    pub fn description(&self) -> &str {
+        match self {
+            Self::NoContent => "Source file is empty",
+            Self::NoStatements => "Source file is not empty but holds no statements",
+            Self::Unimplemented => {
+                "Source file contains constructs sqleibniz does not yet understand"
+            }
+            Self::UnterminatedString => "Source file contains unterminated strings",
+            Self::UnknownCharacter => {
+                "The source file contains characters the lexer does not understand"
+            }
         }
     }
 }
