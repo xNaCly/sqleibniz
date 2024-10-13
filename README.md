@@ -33,8 +33,6 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 Screenshot:
 ![image](https://github.com/user-attachments/assets/bb19dba6-1872-4ffa-a04e-e616cf492b40)
 
-
-
 ## Configuration
 
 Sqleibniz can be configured via a `leibniz.toml` file, this file has to be
@@ -45,11 +43,15 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 ```toml
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
-[disabled] 
+[disabled]
 # by default, sqleibniz specific errors are disabled:
-rules = [ 
+rules = [
     "NoContent",
-    "NoStatements", 
-    "Unimplemented" 
+    "NoStatements",
+    "Unimplemented",
+
+    # ignoring sqlite specific diagnostics:
+    # "UnterminatedString"
+    # "UnknownCharacter"
 ]
 ```
