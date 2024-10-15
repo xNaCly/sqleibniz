@@ -2,6 +2,8 @@ use crate::error::Error;
 use crate::rules::Rule;
 use crate::types::{Keyword, Token, Type};
 
+mod tests;
+
 pub struct Lexer<'a> {
     pos: usize,
     line: usize,
