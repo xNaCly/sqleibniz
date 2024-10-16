@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::{fs, io::BufRead, path::PathBuf};
 
 use crate::rules::Rule;
 
@@ -11,12 +11,14 @@ pub struct Error {
     pub msg: String,
     pub start: usize,
     pub end: usize,
+    pub doc_url: Option<&'static str>,
 }
 
 pub enum Color {
     Red,
     Reset,
     Blue,
+    Cyan,
     Green,
     Yellow,
 }
@@ -29,6 +31,7 @@ impl Color {
             Self::Blue => "\x1b[94m",
             Self::Green => "\x1b[92m",
             Self::Yellow => "\x1b[93m",
+            Self::Cyan => "\x1b[96m",
         }
     }
 }
@@ -66,9 +69,19 @@ impl Error {
             return;
         }
 
-        print_str_colored(" => ", Color::Blue);
-        print_str!(self.file);
-        print_str!('\n');
+        print_str_colored(" -> ", Color::Blue);
+        // the file is not absolut, this resolves symlinks and stuff
+        let file_path = match fs::canonicalize(PathBuf::from(&self.file)) {
+            Ok(path) => path.into_os_string().into_string().unwrap_or_default(),
+            _ => self.file.clone(),
+        };
+        print_str_colored(&file_path, Color::Cyan);
+        // zero based indexing, we need human friendly numbers here
+        print_str_colored(
+            &format!(":{}:{}", self.line + 1, self.start + 1),
+            Color::Yellow,
+        );
+        println!();
 
         let lines = content.lines().map(|x| x.unwrap()).collect::<Vec<_>>();
 
@@ -129,12 +142,20 @@ impl Error {
         print_str_colored("    |\n", Color::Blue);
         print_str_colored("    ~ note: ", Color::Blue);
         print_str!(self.note);
-        print_str!('\n');
+        println!();
 
         print_str_colored("  * ", Color::Blue);
         print_str_colored(self.rule.to_str(), Color::Blue);
         print_str!(": ");
         print_str!(self.rule.description());
-        print_str!('\n');
+        println!();
+
+        if self.doc_url.is_some() {
+            println!();
+            print_str_colored(" docs", Color::Blue);
+            print_str!(": ");
+            print_str!(self.doc_url.unwrap());
+            println!();
+        }
     }
 }

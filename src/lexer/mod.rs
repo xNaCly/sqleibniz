@@ -44,6 +44,7 @@ impl Lexer<'_> {
             msg: msg.into(),
             start,
             end: self.line_pos,
+            doc_url: None,
         }
     }
 
@@ -163,6 +164,9 @@ impl Lexer<'_> {
                             );
                             err.end = end + 1;
                             err.line = line;
+                            err.doc_url = Some(
+                                "https://www.sqlite.org/lang_expr.html#literal_values_constants_",
+                            );
                             self.errors.push(err);
                             break;
                         } else if self.is('\'') {
@@ -248,15 +252,17 @@ impl Lexer<'_> {
                 }
                 _ => {
                     let cur = self.cur();
-                    self.errors.push(self.err(
+                    let mut err = self.err(
                         &format!("Unknown character '{}'", cur),
                         &format!(
-                            "character (ascii: {:#?}, decimal: {}, hex: {:#x}) is unknown at this time",
+                            "character (ascii: {:#?}, decimal: {}, hex: {:#x})",
                             cur, cur as u8, cur as u8
                         ),
                         self.line_pos,
                         Rule::UnknownCharacter,
-                    ));
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/expr.html");
+                    self.errors.push(err);
                 }
             }
             self.advance();

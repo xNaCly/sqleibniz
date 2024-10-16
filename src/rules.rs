@@ -8,9 +8,9 @@ pub enum Rule {
     NoStatements,
     /// Source file contains constructs sqleibniz does not yet understand
     Unimplemented,
-    /// Source file contains unterminated strings
+    /// Source file contains an unterminated string
     UnterminatedString,
-    /// The source file contains characters the lexer does not understand
+    /// The source file contains an unknown character
     UnknownCharacter,
 }
 
@@ -43,10 +43,8 @@ impl Rule {
             Self::Unimplemented => {
                 "Source file contains constructs sqleibniz does not yet understand"
             }
-            Self::UnterminatedString => "Source file contains unterminated strings",
-            Self::UnknownCharacter => {
-                "The source file contains characters the lexer does not understand"
-            }
+            Self::UnterminatedString => "Source file contains an unterminated string",
+            Self::UnknownCharacter => "The source file contains an unknown character",
         }
     }
 }
