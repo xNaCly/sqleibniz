@@ -1,3 +1,4 @@
+#[allow(unused_macros)]
 macro_rules! test_group {
     ("fail",$group_name:ident,$($name:ident:$value:literal),*) => {
         mod $group_name {
