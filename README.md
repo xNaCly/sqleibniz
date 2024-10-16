@@ -31,7 +31,9 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 ## Usage
 
 Screenshot:
-![image](https://github.com/user-attachments/assets/bb19dba6-1872-4ffa-a04e-e616cf492b40)
+
+![image](https://github.com/user-attachments/assets/cb752211-1233-46d5-809e-319f2df31754)
+
 
 ## Configuration
 
