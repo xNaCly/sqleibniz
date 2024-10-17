@@ -45,15 +45,16 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 ```toml
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
-[disabled]
+[disabled] 
 # by default, sqleibniz specific errors are disabled:
-rules = [
+rules = [ 
     "NoContent",
-    "NoStatements",
+    "NoStatements", 
     "Unimplemented",
 
     # ignoring sqlite specific diagnostics:
-    # "UnterminatedString"
-    # "UnknownCharacter"
+    # "UnterminatedString", # a not closed string was found
+    # "UnknownCharacter", # an unknown character was found
+    # "InvalidNumericLiteral", # an invalid numeric literal was found
 ]
 ```
