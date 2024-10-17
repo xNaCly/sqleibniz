@@ -33,6 +33,40 @@ macro_rules! test_group {
 }
 
 #[cfg(test)]
+mod should_pass {
+    test_group! {
+        "pass",
+        string,
+        string: "'text'",
+        empty_string: "''"
+    }
+
+    test_group! {
+        "pass",
+        symbol,
+        star: "* ",
+        semicolon: "; ",
+        comma: ", ",
+        percent: "% "
+    }
+
+    test_group! {
+        "pass",
+        number,
+        // edge cases
+        zero: "0",
+        zero_float: ".0",
+        zero_hex: "0x0",
+        zero_float_with_prefix_zero: "0.0",
+
+        float_all_paths: "1_000.12_000e+3_5",
+        float_all_paths2: ".1_000e-1_2",
+        hex: "0xABCDEF",
+        hex_large_x: "0XABCDEF"
+    }
+}
+
+#[cfg(test)]
 mod should_fail {
     test_group! {
         "fail",
@@ -56,23 +90,17 @@ mod should_fail {
         multiline_comment_single_line: "/**/",
         multiline_comment: "/*\n\n\n*/"
     }
-}
-
-#[cfg(test)]
-mod should_pass {
-    test_group! {
-        "pass",
-        string,
-        string: "'text'",
-        empty_string: "''"
-    }
 
     test_group! {
-        "pass",
-        symbol,
-        star: "* ",
-        semicolon: "; ",
-        comma: ", ",
-        percent: "% "
+        "fail",
+        number,
+        bad_hex: "0x",
+        bad_hex2: "0X",
+        bad_float: ".",
+        bad_float_multiple_dots: "....",
+        bad_float_with_e: ".e",
+        bad_float_with_large_e: ".E",
+        bad_float_multiple_e: ".eeee",
+        bad_float_combination: "12.e+-15"
     }
 }

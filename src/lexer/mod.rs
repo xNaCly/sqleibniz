@@ -1,3 +1,5 @@
+use std::f64;
+
 use crate::error::Error;
 use crate::rules::Rule;
 use crate::types::{Keyword, Token, Type};
@@ -75,12 +77,19 @@ impl Lexer<'_> {
         self.pos >= self.source.len()
     }
 
-    fn is_sqlite_num(&self, c: char) -> bool {
-        match c {
-            // hexadecimal
-            'x' | 'X' => true,
+    /// Specifically matches https://www.sqlite.org/syntax/numeric-literal.html
+    fn is_sqlite_num(&self) -> bool {
+        match self.cur() {
+            // exponent notation with +-
+            '+' | '-' => true,
             // sqlite allows for separating numbers by _
             '_' => true,
+            // floating point
+            '.' => true,
+            // hexadecimal
+            'a'..='f' => true,
+            'A'..='F' => true,
+            // decimal
             '0'..='9' => true,
             _ => false,
         }
@@ -155,7 +164,7 @@ impl Lexer<'_> {
                         let end = self.line_pos;
                         let line = self.line;
                         self.advance();
-                        if self.is('\n') || self.is_eof() {
+                        if self.is_eof() || self.is('\n') {
                             let mut err = self.err(
                                 &format!("Unterminated String in '{}'", self.name),
                                 "Consider adding a \"'\" at the end of this string",
@@ -195,7 +204,10 @@ impl Lexer<'_> {
                 // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
                     // only '.', with no digit following it is an indexing operation
-                    if self.is('.') {
+                    if self.is('.') && 
+                        // check if next is not e/E, because these are used as scientifc notation
+                        // in floating point numbers
+                        !(self.next_equals('e') || self.next_equals('E')) {
                         let next = self.next();
                         if next.is_some() && self.is_ident(next.unwrap()) {
                             r.push(Token {
@@ -208,12 +220,78 @@ impl Lexer<'_> {
                         };
                     }
 
-                    self.errors.push(self.err(
-                        "Unimplemented: Numbers",
-                        "Numbers arent yet implemented",
-                        self.line_pos,
-                        Rule::Unimplemented,
-                    ));
+                    let line_start = self.line_pos;
+
+                    // hexadecimal number
+                    let is_hex = if self.is('0') && (self.next_equals('x') || self.next_equals('X'))
+                    {
+                        self.advance();
+                        self.advance();
+                        true
+                    } else {
+                        false
+                    };
+
+                    // number state machine
+                    let start = self.pos;
+                    while !self.is_eof() && self.is_sqlite_num() {
+                        self.advance();
+                    }
+
+                    let str = self
+                        .source
+                        .get(start..self.pos)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter_map(|&u| match u as char {
+                            '_' => None,
+                            _ => Some(u as char),
+                        })
+                        .collect::<String>();
+
+                    if is_hex {
+                        match i64::from_str_radix(&str, 16) {
+                            Ok(number) => {
+                                r.push(Token {
+                                    ttype: Type::Number(number as f64),
+                                    start: self.pos,
+                                    end: self.pos,
+                                });
+                            }
+                            Err(error) => {
+                                let mut err = self.err(
+                                    &format!("Bad hexadecimal numeric literal: '0x{}'", str),
+                                    &error.to_string(),
+                                    line_start,
+                                    Rule::InvalidNumericLiteral,
+                                );
+                                err.doc_url =
+                                    Some("https://www.sqlite.org/syntax/numeric-literal.html");
+                                self.errors.push(err);
+                            }
+                        };
+                    } else {
+                        match str.parse::<f64>() {
+                            Ok(number) => {
+                                r.push(Token {
+                                    ttype: Type::Number(number as f64),
+                                    start: self.pos,
+                                    end: self.pos,
+                                });
+                            }
+                            Err(error) => {
+                                let mut err = self.err(
+                                    &format!("Bad numeric literal: '{}'", str),
+                                    &error.to_string(),
+                                    line_start,
+                                    Rule::InvalidNumericLiteral,
+                                );
+                                err.doc_url =
+                                    Some("https://www.sqlite.org/syntax/numeric-literal.html");
+                                self.errors.push(err);
+                            }
+                        };
+                    };
                 }
                 // blobs, see above
                 'X' | 'x' => {
@@ -227,7 +305,7 @@ impl Lexer<'_> {
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
                 'a'..='z' | 'A'..='Z' | '_' => {
                     let start = self.pos;
-                    while self.is_ident(self.cur()) {
+                    while !self.is_eof() && self.is_ident(self.cur()) {
                         self.advance();
                     }
                     let ident = String::from_utf8(
