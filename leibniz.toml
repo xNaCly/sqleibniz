@@ -8,6 +8,7 @@ rules = [
     "Unimplemented",
 
     # ignoring sqlite specific diagnostics:
-    # "UnterminatedString"
-    # "UnknownCharacter" 
+    "UnterminatedString", # a not closed string was found
+    "UnknownCharacter", # an unknown character was found
+    "InvalidNumericLiteral", # an invalid numeric literal was found
 ]
