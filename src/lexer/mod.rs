@@ -1,6 +1,6 @@
 use std::f64;
 
-use crate::error::Error;
+use crate::error::{self, Error};
 use crate::rules::Rule;
 use crate::types::{Keyword, Token, Type};
 
@@ -114,6 +114,46 @@ impl Lexer<'_> {
         }
     }
 
+    /// progresses in the input until ',\n or EOF are hit.
+    fn string(&mut self) -> Result<Token, error::Error> {
+        let start = self.pos;
+        let line_start = self.line_pos;
+        while !self.is_eof() {
+            let end = self.line_pos;
+            let line = self.line;
+            self.advance();
+            if self.is_eof() || self.is('\n') {
+                let mut err = self.err(
+                    &format!("Unterminated String in '{}'", self.name),
+                    "Consider adding a \"'\" at the end of this string",
+                    line_start,
+                    Rule::UnterminatedString,
+                );
+                err.end = end + 1;
+                err.line = line;
+                err.doc_url =
+                    Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                return Err(err);
+            } else if self.is('\'') {
+                return Ok(Token {
+                    ttype: Type::String(
+                        String::from_utf8(
+                            self.source
+                                // +1 to skip the ' from the start of the string
+                                .get(start + 1..self.pos)
+                                .unwrap_or_default()
+                                .to_vec(),
+                        )
+                        .unwrap_or_default(),
+                    ),
+                    end: self.pos - 1,
+                    start,
+                });
+            }
+        }
+        return Err(self.err("Impossible case", "", self.line_pos, Rule::Unimplemented));
+    }
+
     pub fn run(&mut self) -> Vec<Token> {
         let mut r = vec![];
         if self.source.len() == 0 {
@@ -158,43 +198,11 @@ impl Lexer<'_> {
                 }
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '\'' => {
-                    let start = self.pos;
-                    let line_start = self.line_pos;
-                    while !self.is_eof() {
-                        let end = self.line_pos;
-                        let line = self.line;
-                        self.advance();
-                        if self.is_eof() || self.is('\n') {
-                            let mut err = self.err(
-                                &format!("Unterminated String in '{}'", self.name),
-                                "Consider adding a \"'\" at the end of this string",
-                                line_start,
-                                Rule::UnterminatedString,
-                            );
-                            err.end = end + 1;
-                            err.line = line;
-                            err.doc_url = Some(
-                                "https://www.sqlite.org/lang_expr.html#literal_values_constants_",
-                            );
-                            self.errors.push(err);
-                            break;
-                        } else if self.is('\'') {
-                            r.push(Token {
-                                ttype: Type::String(
-                                    String::from_utf8(
-                                        self.source
-                                            // +1 to skip the ' from the start of the string
-                                            .get(start + 1..self.pos)
-                                            .unwrap_or_default()
-                                            .to_vec(),
-                                    )
-                                    .unwrap_or_default(),
-                                ),
-                                end: self.pos - 1,
-                                start,
-                            });
-                            break;
-                        }
+                    let result = self.string();
+                    if result.is_ok() {
+                        r.push(result.unwrap());
+                    } else {
+                        self.errors.push(result.err().unwrap());
                     }
                 }
                 '*' => r.push(self.single(Type::Asteriks)),
@@ -204,10 +212,9 @@ impl Lexer<'_> {
                 // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
                     // only '.', with no digit following it is an indexing operation
-                    if self.is('.') && 
-                        // check if next is not e/E, because these are used as scientifc notation
-                        // in floating point numbers
-                        !(self.next_equals('e') || self.next_equals('E')) {
+                    // check if next is not e/E, because these are used as scientifc notation
+                    // in floating point numbers
+                    if self.is('.') && !(self.next_equals('e') || self.next_equals('E')) {
                         let next = self.next();
                         if next.is_some() && self.is_ident(next.unwrap()) {
                             r.push(Token {
@@ -295,12 +302,64 @@ impl Lexer<'_> {
                 }
                 // blobs, see above
                 'X' | 'x' => {
-                    self.errors.push(self.err(
-                        "Unimplemented: Blobs",
-                        "Blobs arent yet implemented",
-                        self.line_pos,
-                        Rule::Unimplemented,
-                    ));
+                    let line_start = self.line_pos;
+                    let line = self.line;
+                    if self.next_equals('\'') {
+                        self.advance(); // skip X
+                        let result = self.string();
+                        if let Ok(str_tok) = &result {
+                            match &str_tok.ttype {
+                                Type::String(str) => {
+                                    let mut had_bad_hex = false;
+                                    for (idx, c) in str.chars().enumerate() {
+                                        match c {
+                                            'a'..='f' => {}
+                                            'A'..='F' => {}
+                                            '0'..='9' => {}
+                                            _ => {
+                                                let mut err = self.err("Bad blob data", &format!("a Blob is hexadecimal data, '{}' is not a valid hexadecimal digit (a..=f, A..=F, 0..=9)", c), line_start+2+idx, Rule::InvalidBlob);
+                                                err.end = line_start + 2 + idx;
+                                                err.doc_url = Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                                                self.errors.push(err);
+                                                had_bad_hex = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if !had_bad_hex {
+                                        r.push(Token {
+                                            ttype: Type::Blob(str.as_bytes().to_vec()),
+                                            start: str_tok.start,
+                                            end: str_tok.end,
+                                        });
+                                    }
+                                }
+                                _ => panic!("Impossible branch"),
+                            }
+                        } else {
+                            let mut err = self.err(
+                                "Unterminated blob string",
+                                "a Blob is hexadecimal data prefixed with X' and postfixed with ', you forgot the closing '",
+                                line_start,
+                                Rule::InvalidBlob,
+                            );
+                            err.line = line;
+                            err.doc_url = Some(
+                                "https://www.sqlite.org/lang_expr.html#literal_values_constants_",
+                            );
+                            self.errors.push(err);
+                        }
+                    } else {
+                        let mut err = self.err(
+                            "Malformed blob",
+                            "a Blob is hexadecimal data prefixed with X' and postfixed with '",
+                            self.line_pos,
+                            Rule::InvalidBlob,
+                        );
+                        err.doc_url =
+                            Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                        self.errors.push(err);
+                    }
                 }
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
                 'a'..='z' | 'A'..='Z' | '_' => {

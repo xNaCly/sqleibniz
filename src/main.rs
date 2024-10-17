@@ -58,7 +58,8 @@ fn main() {
         };
         let mut ignored_errors = 0;
         let mut lexer = Lexer::init(&content, file.name.clone());
-        let _ = lexer.run();
+        let toks = lexer.run();
+        dbg!(toks);
         lexer.errors = lexer
             .errors
             .into_iter()

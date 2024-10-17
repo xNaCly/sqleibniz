@@ -1,5 +1,6 @@
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
+#[allow(clippy::non_camel_case_types)]
 pub enum Keyword {
     ABORT,
     ACTION,

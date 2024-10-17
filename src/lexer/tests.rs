@@ -64,6 +64,17 @@ mod should_pass {
         hex: "0xABCDEF",
         hex_large_x: "0XABCDEF"
     }
+
+    test_group! {
+        "pass",
+        blob,
+        // edge cases
+        empty: "X''",
+        empty_small: "x''",
+
+        filled: "X'12345'",
+        filled_small: "x'12345'"
+    }
 }
 
 #[cfg(test)]
@@ -102,5 +113,18 @@ mod should_fail {
         bad_float_with_large_e: ".E",
         bad_float_multiple_e: ".eeee",
         bad_float_combination: "12.e+-15"
+    }
+
+    test_group! {
+        "fail",
+        blob,
+        // edge cases
+        no_quotes: "X",
+        no_quotes_small: "x",
+        unterminated: "X'",
+        unterminated_small: "x'",
+        unterminated1: "X'12819281",
+        unterminated_small1: "x'102812",
+        bad_hex: "X'1281928FFFY'"
     }
 }

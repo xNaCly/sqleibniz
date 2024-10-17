@@ -8,6 +8,7 @@ pub enum Type {
     Ident(String),
     Number(f64),
     String(String),
+    Blob(Vec<u8>),
     Dot,
     Asteriks,
     Semicolon,
