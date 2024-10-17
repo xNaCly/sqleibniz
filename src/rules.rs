@@ -14,6 +14,8 @@ pub enum Rule {
     UnknownCharacter,
     /// The source file contains an invalid numeric literal
     InvalidNumericLiteral,
+    /// The source file contains an invalid blob literal
+    InvalidBlob,
 }
 
 #[derive(Deserialize, Debug)]
@@ -36,6 +38,7 @@ impl Rule {
             Self::UnterminatedString => "UnterminatedString",
             Self::UnknownCharacter => "UnknownCharacter",
             Self::InvalidNumericLiteral => "InvalidNumericLiteral",
+            Self::InvalidBlob => "InvalidBlob",
         }
     }
 
@@ -49,6 +52,7 @@ impl Rule {
             Self::UnterminatedString => "Source file contains an unterminated string",
             Self::UnknownCharacter => "The source file contains an unknown character",
             Self::InvalidNumericLiteral => "The source file contains an invalid numeric literal",
+            Self::InvalidBlob => "The source file contains an invalid blob literal",
         }
     }
 }

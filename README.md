@@ -56,5 +56,6 @@ rules = [
     # "UnterminatedString", # a not closed string was found
     # "UnknownCharacter", # an unknown character was found
     # "InvalidNumericLiteral", # an invalid numeric literal was found
+    # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
 ]
 ```
