@@ -1,24 +1,20 @@
 use crate::{error::Error, rules::Rule, types::Token};
-use std::fmt::Debug;
+use nodes::{Literal, Node};
 
-pub trait Node: Debug {}
-
-#[derive(Debug)]
-pub struct Literal<'a> {
-    t: &'a Token,
-}
-impl Node for Literal<'_> {}
+mod nodes;
 
 pub struct Parser {
     pos: usize,
     tokens: Vec<Token>,
+    name: String,
     pub errors: Vec<Error>,
 }
 
 impl Parser {
-    pub fn init(tokens: Vec<Token>) -> Parser {
+    pub fn new(tokens: Vec<Token>, name: String) -> Parser {
         Parser {
             pos: 0,
+            name,
             tokens,
             errors: vec![],
         }
@@ -30,7 +26,7 @@ impl Parser {
 
     fn err(&self, msg: &str, note: &str, start: &Token, rule: Rule) -> Error {
         Error {
-            file: String::from("i have to keep the file somewhere"),
+            file: self.name.clone(),
             line: start.line,
             rule,
             note: note.into(),

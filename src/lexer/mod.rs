@@ -16,7 +16,7 @@ pub struct Lexer<'a> {
 }
 
 impl Lexer<'_> {
-    pub fn init(source: &'_ Vec<u8>, name: String) -> Lexer<'_> {
+    pub fn new(source: &'_ Vec<u8>, name: String) -> Lexer<'_> {
         Lexer {
             pos: 0,
             line: 0,
