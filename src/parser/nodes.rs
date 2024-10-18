@@ -1,10 +1,12 @@
 use crate::types::Token;
-use std::fmt::Debug;
 
-pub trait Node: Debug {}
+pub trait Node: std::fmt::Debug {}
+
+// TODO: write a macro to automate this
+// node!(Literal, t: Token) -> below
 
 #[derive(Debug)]
-pub struct Literal<'a> {
-    pub t: &'a Token,
+pub struct Literal {
+    pub t: Token,
 }
-impl Node for Literal<'_> {}
+impl Node for Literal {}

@@ -18,6 +18,8 @@ pub enum Rule {
     /// The source file contains an invalid blob literal, either bad hex data (a-f,A-F,0-9) or
     /// incorrect syntax
     InvalidBlob,
+    /// The source file contains a structure with incorrect syntax
+    Syntax,
 }
 
 #[derive(Deserialize, Debug)]
@@ -43,6 +45,7 @@ impl Rule {
             Self::UnknownCharacter => "UnknownCharacter",
             Self::InvalidNumericLiteral => "InvalidNumericLiteral",
             Self::InvalidBlob => "InvalidBlob",
+            Self::Syntax => "Syntax",
         }
     }
 
@@ -57,6 +60,7 @@ impl Rule {
             Self::UnknownCharacter => "The source file contains an unknown character",
             Self::InvalidNumericLiteral => "The source file contains an invalid numeric literal",
             Self::InvalidBlob => "The source file contains an invalid blob literal",
+            Self::Syntax => "The source file contains a structure with incorrect syntax",
         }
     }
 }
