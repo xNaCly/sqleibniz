@@ -140,8 +140,8 @@ impl Lexer<'_> {
                         )
                         .unwrap_or_default(),
                     ),
-                    end: self.line_pos - 1,
-                    start,
+                    end: end + 1,
+                    start: line_start,
                 });
             }
         }
@@ -361,6 +361,7 @@ impl Lexer<'_> {
                 // identifiers / keywords: https://www.sqlite.org/lang_keywords.html
                 'a'..='z' | 'A'..='Z' | '_' => {
                     let start = self.pos;
+                    let line_start = self.line_pos;
                     while !self.is_eof() && self.is_ident(self.cur()) {
                         self.advance();
                     }
@@ -382,7 +383,7 @@ impl Lexer<'_> {
                     r.push(Token {
                         line: self.line,
                         ttype: t,
-                        start,
+                        start: line_start,
                         end: self.line_pos,
                     });
                     continue;
