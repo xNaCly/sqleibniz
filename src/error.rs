@@ -2,7 +2,7 @@ use std::{fs, io::BufRead, path::PathBuf};
 
 use crate::rules::Rule;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Error {
     pub file: String,
     pub line: usize,

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 /// Rule is attached to each error and can be supplied to sqleibniz via the Config structure serialized in ./leibniz.toml
 pub enum Rule {
     /// Source file is empty

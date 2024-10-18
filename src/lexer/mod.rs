@@ -101,8 +101,9 @@ impl Lexer<'_> {
     fn single(&self, ttype: Type) -> Token {
         Token {
             ttype,
-            start: self.pos,
-            end: self.pos,
+            start: self.line_pos,
+            end: self.line_pos,
+            line: self.line,
         }
     }
 
@@ -124,10 +125,11 @@ impl Lexer<'_> {
                 err.end = end + 1;
                 err.line = line;
                 err.doc_url =
-                    Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                    Some("https://www146.sqlite.org/lang_expr.html#literal_values_constants_");
                 return Err(err);
             } else if self.is('\'') {
                 return Ok(Token {
+                    line: self.line,
                     ttype: Type::String(
                         String::from_utf8(
                             self.source
@@ -138,7 +140,7 @@ impl Lexer<'_> {
                         )
                         .unwrap_or_default(),
                     ),
-                    end: self.pos - 1,
+                    end: self.line_pos - 1,
                     start,
                 });
             }
@@ -210,8 +212,9 @@ impl Lexer<'_> {
                         if next.is_some() && self.is_ident(next.unwrap()) {
                             r.push(Token {
                                 ttype: Type::Dot,
-                                start: self.pos,
-                                end: self.pos,
+                                line: self.line,
+                                start: self.line_pos,
+                                end: self.line_pos,
                             });
                             self.advance();
                             continue;
@@ -251,9 +254,10 @@ impl Lexer<'_> {
                         match i64::from_str_radix(&str, 16) {
                             Ok(number) => {
                                 r.push(Token {
+                                    line: self.line,
                                     ttype: Type::Number(number as f64),
-                                    start: self.pos,
-                                    end: self.pos,
+                                    start: line_start,
+                                    end: self.line_pos,
                                 });
                             }
                             Err(error) => {
@@ -272,9 +276,10 @@ impl Lexer<'_> {
                         match str.parse::<f64>() {
                             Ok(number) => {
                                 r.push(Token {
+                                    line: self.line,
                                     ttype: Type::Number(number),
-                                    start: self.pos,
-                                    end: self.pos,
+                                    start: line_start,
+                                    end: self.line_pos,
                                 });
                             }
                             Err(error) => {
@@ -319,6 +324,7 @@ impl Lexer<'_> {
                                     }
                                     if !had_bad_hex {
                                         r.push(Token {
+                                            line,
                                             ttype: Type::Blob(str.as_bytes().to_vec()),
                                             start: str_tok.start,
                                             end: str_tok.end,
@@ -374,9 +380,10 @@ impl Lexer<'_> {
                         t = Type::Ident(ident.clone());
                     }
                     r.push(Token {
+                        line: self.line,
                         ttype: t,
                         start,
-                        end: self.pos,
+                        end: self.line_pos,
                     });
                     continue;
                 }

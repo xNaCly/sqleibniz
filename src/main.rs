@@ -3,12 +3,15 @@ use std::{env, fs, process::exit, vec};
 
 use error::{print_str_colored, warn};
 use lexer::Lexer;
+use parser::Parser;
 use rules::{Config, Disabled};
 
 /// error does formatting and highlighting for errors
 mod error;
 /// lexer converts the input into a stream of token for the parser
 mod lexer;
+/// parser converts the token stream into an abstract syntax tree
+mod parser;
 /// rules controls the error display and configuration
 mod rules;
 /// types holds all shared types between the above modules
@@ -35,7 +38,7 @@ fn main() {
         }
     }
 
-    if config.disabled.rules.is_empty() {
+    if !config.disabled.rules.is_empty() {
         warn("Ignoring the following diagnostics, according to 'leibniz.toml':");
         for rule in &config.disabled.rules {
             print_str_colored(" -> ", error::Color::Blue);
@@ -52,6 +55,7 @@ fn main() {
         })
         .collect::<Vec<FileResult>>();
     for file in &mut files {
+        let mut errors = vec![];
         let content = match fs::read(&file.name) {
             Ok(c) => c,
             Err(err) => {
@@ -62,30 +66,41 @@ fn main() {
         let mut ignored_errors = 0;
         let mut lexer = Lexer::init(&content, file.name.clone());
         let toks = lexer.run();
-        dbg!(toks);
-        lexer.errors.retain(|e| {
-            if config.disabled.rules.contains(&e.rule) {
-                ignored_errors += 1;
-                false
-            } else {
-                true
-            }
-        });
-        if !lexer.errors.is_empty() {
+        errors.push(lexer.errors);
+
+        if !toks.is_empty() {
+            let mut parser = Parser::init(toks);
+            let _ = parser.parse();
+            errors.push(parser.errors);
+        }
+
+        let processed_errors = errors
+            .iter()
+            .flatten()
+            .filter(|e| {
+                if config.disabled.rules.contains(&e.rule) {
+                    ignored_errors += 1;
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect::<Vec<&error::Error>>();
+
+        if !processed_errors.is_empty() {
             error::print_str_colored(
                 &format!("{:=^72}\n", format!(" {} ", file.name)),
                 error::Color::Blue,
             );
-            let error_count = lexer.errors.len();
-            for (i, e) in &mut lexer.errors.iter_mut().enumerate() {
-                e.print(&content);
+            let error_count = processed_errors.len();
+            for (i, e) in processed_errors.iter().enumerate() {
+                (**e).clone().print(&content);
                 if i + 1 != error_count {
                     println!()
                 }
             }
         }
-        // dbg!(toks);
-        file.errors = lexer.errors.len();
+        file.errors = processed_errors.len();
         file.ignored_errors = ignored_errors;
     }
 

@@ -24,4 +24,5 @@ pub struct Token {
     pub ttype: Type,
     pub start: usize,
     pub end: usize,
+    pub line: usize,
 }
