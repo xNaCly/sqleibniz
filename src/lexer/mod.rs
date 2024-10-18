@@ -368,6 +368,8 @@ impl Lexer<'_> {
                     let t: Type;
                     if let Some(keyword) = Keyword::from_str(ident.as_str()) {
                         t = Type::Keyword(keyword);
+                    } else if ident.to_lowercase() == "true" || ident.to_lowercase() == "false" {
+                        t = Type::Boolean(ident.to_lowercase() == "true")
                     } else {
                         t = Type::Ident(ident.clone());
                     }

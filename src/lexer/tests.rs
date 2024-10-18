@@ -36,6 +36,15 @@ macro_rules! test_group {
 mod should_pass {
     test_group! {
         "pass",
+        booleans,
+        r#true: "true",
+        true_upper: "TRUE",
+        r#false: "false",
+        false_upper: "FALSE"
+    }
+
+    test_group! {
+        "pass",
         string,
         string: "'text'",
         empty_string: "''"

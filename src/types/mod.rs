@@ -1,6 +1,8 @@
 mod keyword;
-pub use self::keyword::Keyword; // this shit is really fucking idiotic, but i have to reexport
-                                // private identifiers, rust you are fucking weird
+
+/// this shit is really fucking idiotic, but i have to reexport
+/// private identifiers, rust you are fucking weird
+pub use self::keyword::Keyword;
 
 #[derive(Debug)]
 pub enum Type {
@@ -9,6 +11,7 @@ pub enum Type {
     Number(f64),
     String(String),
     Blob(Vec<u8>),
+    Boolean(bool),
     Dot,
     Asteriks,
     Semicolon,
