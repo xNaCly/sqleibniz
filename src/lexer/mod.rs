@@ -58,12 +58,7 @@ impl Lexer<'_> {
     }
 
     fn is_ident(&self, c: char) -> bool {
-        match c {
-            'a'..='z' => true,
-            'A'..='Z' => true,
-            '_' => true,
-            _ => false,
-        }
+        matches!(c, 'a'..='z'| 'A'..='Z'| '_')
     }
 
     fn is(&self, c: char) -> bool {
@@ -96,14 +91,11 @@ impl Lexer<'_> {
     }
 
     fn cur(&self) -> char {
-        return self.source[self.pos] as char;
+        self.source[self.pos] as char
     }
 
     fn next(&self) -> Option<char> {
-        match self.source.get(self.pos + 1) {
-            Some(c) => Some(*c as char),
-            _ => None,
-        }
+        self.source.get(self.pos + 1).map(|c| *c as char)
     }
 
     fn single(&self, ttype: Type) -> Token {
@@ -151,12 +143,12 @@ impl Lexer<'_> {
                 });
             }
         }
-        return Err(self.err("Impossible case", "", self.line_pos, Rule::Unimplemented));
+        Err(self.err("Impossible case", "", self.line_pos, Rule::Unimplemented))
     }
 
     pub fn run(&mut self) -> Vec<Token> {
         let mut r = vec![];
-        if self.source.len() == 0 {
+        if self.source.is_empty() {
             self.errors.push(self.err(
                 "No content found in source file",
                 &format!("consider adding statements to '{}'", self.name),
@@ -199,10 +191,9 @@ impl Lexer<'_> {
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '\'' => {
                     let result = self.string();
-                    if result.is_ok() {
-                        r.push(result.unwrap());
-                    } else {
-                        self.errors.push(result.err().unwrap());
+                    match result {
+                        Ok(str_tok) => r.push(str_tok),
+                        Err(err) => self.errors.push(err),
                     }
                 }
                 '*' => r.push(self.single(Type::Asteriks)),
@@ -249,7 +240,7 @@ impl Lexer<'_> {
                         .source
                         .get(start..self.pos)
                         .unwrap_or_default()
-                        .into_iter()
+                        .iter()
                         .filter_map(|&u| match u as char {
                             '_' => None,
                             _ => Some(u as char),
@@ -281,7 +272,7 @@ impl Lexer<'_> {
                         match str.parse::<f64>() {
                             Ok(number) => {
                                 r.push(Token {
-                                    ttype: Type::Number(number as f64),
+                                    ttype: Type::Number(number),
                                     start: self.pos,
                                     end: self.pos,
                                 });
@@ -405,7 +396,7 @@ impl Lexer<'_> {
             self.advance();
         }
 
-        if r.len() == 0 && self.errors.len() == 0 {
+        if r.is_empty() && self.errors.is_empty() {
             self.errors.push(self.err(
                 "No statements found in source file",
                 &format!("consider adding statements to '{}'", self.name),
@@ -414,6 +405,6 @@ impl Lexer<'_> {
             ));
             return vec![];
         }
-        return r;
+        r
     }
 }

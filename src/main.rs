@@ -32,7 +32,7 @@ fn main() {
         }
     }
 
-    if config.disabled.rules.len() != 0 {
+    if config.disabled.rules.is_empty() {
         warn("Ignoring the following diagnostics, according to 'leibniz.toml':");
         for rule in &config.disabled.rules {
             print_str_colored(" -> ", error::Color::Blue);
@@ -60,19 +60,15 @@ fn main() {
         let mut lexer = Lexer::init(&content, file.name.clone());
         let toks = lexer.run();
         dbg!(toks);
-        lexer.errors = lexer
-            .errors
-            .into_iter()
-            .filter(|e| {
-                if config.disabled.rules.contains(&e.rule) {
-                    ignored_errors += 1;
-                    return false;
-                } else {
-                    return true;
-                }
-            })
-            .collect();
-        if lexer.errors.len() != 0 {
+        lexer.errors.retain(|e| {
+            if config.disabled.rules.contains(&e.rule) {
+                ignored_errors += 1;
+                false
+            } else {
+                true
+            }
+        });
+        if !lexer.errors.is_empty() {
             error::print_str_colored(
                 &format!("{:=^72}\n", format!(" {} ", file.name)),
                 error::Color::Blue,
@@ -105,7 +101,7 @@ fn main() {
                 _ => error::Color::Red,
             },
         );
-        print!(" {}:\n", file.name);
+        println!(" {}:", file.name);
         match file.errors {
             0 => println!("    {} Error(s) detected", file.errors,),
             _ => error::print_str_colored(

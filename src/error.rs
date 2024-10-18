@@ -65,7 +65,7 @@ impl Error {
         print_str!(&self.msg);
         println!();
 
-        if content.len() == 0 {
+        if content.is_empty() {
             return;
         }
 
@@ -86,12 +86,9 @@ impl Error {
         let lines = content.lines().map(|x| x.unwrap()).collect::<Vec<_>>();
 
         // eof should always highlight the last line
-        match &self.rule {
-            &Rule::NoStatements => {
-                self.line = lines.len() - 1;
-                self.end = 0;
-            }
-            _ => (),
+        if let &Rule::NoStatements = &self.rule {
+            self.line = lines.len() - 1;
+            self.end = 0;
         }
 
         if self.line >= 2 {
