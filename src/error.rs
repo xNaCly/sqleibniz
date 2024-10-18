@@ -60,7 +60,7 @@ impl Error {
     pub fn print(&mut self, content: &Vec<u8>) {
         print_str_colored("error", Color::Red);
         print_str!("[");
-        print_str_colored(self.rule.to_str(), Color::Red);
+        print_str_colored(self.rule.name(), Color::Red);
         print_str!("]: ");
         print_str!(&self.msg);
         println!();
@@ -142,7 +142,7 @@ impl Error {
         println!();
 
         print_str_colored("  * ", Color::Blue);
-        print_str_colored(self.rule.to_str(), Color::Blue);
+        print_str_colored(self.rule.name(), Color::Blue);
         print_str!(": ");
         print_str!(self.rule.description());
         println!();

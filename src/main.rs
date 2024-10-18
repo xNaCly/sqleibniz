@@ -7,8 +7,11 @@ use rules::{Config, Disabled};
 
 /// error does formatting and highlighting for errors
 mod error;
+/// lexer converts the input into a stream of token for the parser
 mod lexer;
+/// rules controls the error display and configuration
 mod rules;
+/// types holds all shared types between the above modules
 mod types;
 
 struct FileResult {
@@ -36,7 +39,7 @@ fn main() {
         warn("Ignoring the following diagnostics, according to 'leibniz.toml':");
         for rule in &config.disabled.rules {
             print_str_colored(" -> ", error::Color::Blue);
-            println!("{}", rule.to_str())
+            println!("{}", rule.name())
         }
     }
 

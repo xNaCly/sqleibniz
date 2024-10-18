@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq)]
+/// Rule is attached to each error and can be supplied to sqleibniz via the Config structure serialized in ./leibniz.toml
 pub enum Rule {
     /// Source file is empty
     NoContent,
@@ -12,9 +13,10 @@ pub enum Rule {
     UnterminatedString,
     /// The source file contains an unknown character
     UnknownCharacter,
-    /// The source file contains an invalid numeric literal
+    /// The source file contains an invalid numeric literal, either overflow or incorrect syntax
     InvalidNumericLiteral,
-    /// The source file contains an invalid blob literal
+    /// The source file contains an invalid blob literal, either bad hex data (a-f,A-F,0-9) or
+    /// incorrect syntax
     InvalidBlob,
 }
 
@@ -25,12 +27,14 @@ pub struct Disabled {
 }
 
 #[derive(Deserialize, Debug)]
+/// Configuration is expected to be at ./leibniz.toml - its existence is not necessary for the program invocation
 pub struct Config {
+    /// holds the rules that the user wants to not see errors for.
     pub disabled: Disabled,
 }
 
 impl Rule {
-    pub fn to_str(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             Self::NoContent => "NoContent",
             Self::NoStatements => "NoStatements",
