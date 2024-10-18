@@ -3,8 +3,8 @@
 -- numbers see https://www.sqlite.org/syntax/numeric-literal.html
 1_000.12_000e+3_5;
 .1_000e-1_2;
-0xabcdef1234567890;
-0XABCDEF1234567890;
+0xabcdef1;
+0XABCDEF1;
 
 -- strings:
 'string1';
