@@ -1,17 +1,17 @@
 use crate::{
     error::Error,
     rules::Rule,
-    types::{Token, Type},
+    types::{Keyword, Token, Type},
 };
 use nodes::{Literal, Node};
 
 mod nodes;
 mod tests;
 
-pub struct Parser {
+pub struct Parser<'a> {
     pos: usize,
     tokens: Vec<Token>,
-    name: String,
+    name: &'a str,
     pub errors: Vec<Error>,
 }
 
@@ -21,8 +21,8 @@ pub struct Parser {
 ///
 /// - https://www.sqlite.org/lang.html
 /// - https://www.sqlite.org/lang_expr.html
-impl Parser {
-    pub fn new(tokens: Vec<Token>, name: String) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: Vec<Token>, name: &'a str) -> Parser<'a> {
         Parser {
             pos: 0,
             name,
@@ -37,7 +37,7 @@ impl Parser {
 
     fn err(&self, msg: &str, note: &str, start: &Token, rule: Rule) -> Error {
         Error {
-            file: self.name.clone(),
+            file: self.name.to_string(),
             line: start.line,
             rule,
             note: note.into(),
@@ -75,7 +75,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<Option<Box<dyn Node + '_>>> {
+    pub fn parse(&mut self) -> Vec<Option<Box<dyn Node>>> {
         self.sql_stmt_list()
     }
 
@@ -100,7 +100,16 @@ impl Parser {
     fn literal_value(&mut self) -> Option<Box<dyn Node>> {
         let cur = self.cur()?;
         let r: Option<Box<dyn Node>> = match cur.ttype {
-            Type::Boolean(_) => Some(Box::new(Literal { t: cur.clone() })),
+            Type::String(_)
+            | Type::Number(_)
+            | Type::Blob(_)
+            | Type::Keyword(Keyword::NULL)
+            | Type::Boolean(_)
+            | Type::Keyword(Keyword::CURRENT_TIME)
+            | Type::Keyword(Keyword::CURRENT_DATE)
+            | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
+                Some(Box::new(Literal { t: cur.clone() }))
+            }
             _ => {
                 let mut err = self.err("Unexpected Token", &format!("Wanted a literal (any of number,string,blob,null,true,false,CURRENT_TIME,CURRENT_DATE,CURRENT_DATE), got {:?}", cur.ttype),cur, Rule::Syntax);
                 err.doc_url = Some("https://www.sqlite.org/syntax/literal-value.html");
