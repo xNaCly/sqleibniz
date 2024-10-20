@@ -7,7 +7,7 @@ macro_rules! test_group {
             #[test]
             fn $name() {
                 let source = $value.as_bytes().to_vec();
-                let mut l = lexer::Lexer::new(&source, String::from("lexer_tests_fail"));
+                let mut l = lexer::Lexer::new(&source, "lexer_tests_fail");
                 let toks = l.run();
                 assert_eq!(toks.len(), 0);
                 assert_ne!(l.errors.len(), 0);
@@ -22,7 +22,7 @@ macro_rules! test_group {
             #[test]
             fn $name() {
                 let source = $value.as_bytes().to_vec();
-                let mut l = lexer::Lexer::new(&source, String::from("lexer_tests_pass"));
+                let mut l = lexer::Lexer::new(&source, "lexer_tests_pass");
                 let toks = l.run();
                 assert_ne!(toks.len(), 0);
                 assert_eq!(l.errors.len(), 0);

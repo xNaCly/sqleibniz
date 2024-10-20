@@ -64,12 +64,12 @@ fn main() {
             }
         };
         let mut ignored_errors = 0;
-        let mut lexer = Lexer::new(&content, file.name.clone());
+        let mut lexer = Lexer::new(&content, file.name.as_str());
         let toks = lexer.run();
         errors.push(lexer.errors);
 
         if !toks.is_empty() {
-            let mut parser = Parser::new(toks, file.name.clone());
+            let mut parser = Parser::new(toks, file.name.as_str());
             let _ = parser.parse();
             errors.push(parser.errors);
         }

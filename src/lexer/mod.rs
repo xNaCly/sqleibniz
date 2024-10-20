@@ -10,13 +10,13 @@ pub struct Lexer<'a> {
     pos: usize,
     line: usize,
     line_pos: usize,
-    name: String,
+    name: &'a str,
     source: &'a Vec<u8>,
     pub errors: Vec<Error>,
 }
 
-impl Lexer<'_> {
-    pub fn new(source: &'_ Vec<u8>, name: String) -> Lexer<'_> {
+impl<'a> Lexer<'a> {
+    pub fn new(source: &'a Vec<u8>, name: &'a str) -> Lexer<'a> {
         Lexer {
             pos: 0,
             line: 0,
@@ -39,7 +39,7 @@ impl Lexer<'_> {
 
     fn err(&self, msg: &str, note: &str, start: usize, rule: Rule) -> Error {
         Error {
-            file: self.name.clone(),
+            file: self.name.to_string(),
             line: self.line,
             rule,
             note: note.into(),
