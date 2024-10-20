@@ -89,6 +89,7 @@ impl<'a> Parser<'a> {
         r
     }
 
+    /// see: https://www.sqlite.org/syntax/sql-stmt.html
     fn sql_stmt(&mut self) -> Option<Box<dyn Node>> {
         match self.cur()?.ttype {
             // TODO: all paths HERE
