@@ -89,6 +89,8 @@ pub enum Type {
     Semicolon,
     Percent,
     Comma,
+
+    Eof,
 }
 
 #[derive(Debug, Clone)]

@@ -3,7 +3,7 @@ use crate::{
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Literal, Node};
+use nodes::{Explain, Literal, Node, Vacuum};
 
 mod nodes;
 mod tests;
@@ -68,10 +68,41 @@ impl<'a> Parser<'a> {
         false
     }
 
-    /// checks if type of current token is equal to t, otherwise pushes an error
+    /// checks if type of current token is equal to t, otherwise pushes an error, advances either way
     fn consume(&mut self, t: Type) {
-        if self.is(t) {
-            self.advance();
+        let tt = t.clone();
+        if !self.is(tt) {
+            let cur = match self.cur() {
+                None => {
+                    let last = self.tokens.get(self.pos - 1).unwrap();
+                    &Token {
+                        ttype: Type::Eof,
+                        start: last.start,
+                        end: last.end,
+                        line: last.line,
+                    }
+                }
+                Some(c) => c,
+            };
+            let mut err = self.err(
+                match cur.ttype {
+                    Type::Eof => "Unexpected End of input",
+                    _ => "Unexpected Token",
+                },
+                &format!("Wanted {:?}, got {:?}", t, cur.ttype),
+                cur,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/syntax/sql-stmt.html");
+            self.errors.push(err);
+        }
+        self.advance(); // we advance either way to keep the parser error resistant
+    }
+
+    fn next_is(&self, t: Type) -> bool {
+        match self.tokens.get(self.pos + 1) {
+            None => false,
+            Some(token) => token.ttype == t,
         }
     }
 
@@ -83,16 +114,119 @@ impl<'a> Parser<'a> {
     fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn Node>>> {
         let mut r = vec![];
         while !self.is_eof() {
-            r.push(self.sql_stmt());
+            let stmt = self.sql_stmt_prefix();
+            r.push(stmt);
             self.consume(Type::Semicolon);
         }
         r
     }
 
+    fn sql_stmt_prefix(&mut self) -> Option<Box<dyn Node>> {
+        match self.cur()?.ttype {
+            Type::Keyword(Keyword::EXPLAIN) => {
+                let mut e = Explain {
+                    t: self.cur()?.clone(),
+                    child: None,
+                };
+                self.advance(); // skip EXPLAIN
+
+                // path for EXPLAIN->QUERY->PLAN
+                if self.is(Type::Keyword(Keyword::QUERY)) {
+                    self.consume(Type::Keyword(Keyword::QUERY));
+                    self.consume(Type::Keyword(Keyword::PLAN));
+                } // else path is EXPLAIN->*_stmt
+
+                e.child = self.sql_stmt();
+                Some(Box::new(e))
+            }
+            _ => self.sql_stmt(),
+        }
+    }
+
     /// see: https://www.sqlite.org/syntax/sql-stmt.html
     fn sql_stmt(&mut self) -> Option<Box<dyn Node>> {
+        // TODO:
         match self.cur()?.ttype {
-            // TODO: all paths HERE
+            Type::Keyword(Keyword::VACUUM) => {
+                let mut v = Vacuum {
+                    t: self.cur()?.clone(),
+                    schema_name: None,
+                    filename: None,
+                };
+                self.consume(Type::Keyword(Keyword::VACUUM));
+
+                match self.cur()?.ttype {
+                    Type::Semicolon | Type::Ident(_) | Type::Keyword(Keyword::INTO) => {}
+                    _ => {
+                        let mut err = self.err(
+                            "Unexpected Token",
+                            &format!(
+                                "Wanted {:?} with {:?} or {:?} for VACUUM stmt, got {:?}",
+                                Type::Keyword(Keyword::INTO),
+                                Type::String("<filename>".to_string()),
+                                Type::Ident("<schema_name>".to_string()),
+                                self.cur()?.ttype.clone()
+                            ),
+                            &self.cur()?.clone(),
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/lang_vacuum.html");
+                        self.errors.push(err);
+                        self.advance(); // skip error_token
+                    }
+                }
+
+                // first path
+                if let Type::Semicolon = self.cur()?.ttype {
+                    return Some(Box::new(v));
+                }
+
+                // if schema_name is specified
+                if let Type::Ident(_) = self.cur()?.ttype {
+                    v.schema_name = Some(self.cur()?.clone());
+                    self.advance(); // skip schema_name
+                }
+
+                // if INTO keyword is given is specified
+                if let Type::Keyword(Keyword::INTO) = self.cur()?.ttype {
+                    self.advance(); // skip INTO
+                    if let Type::String(_) = self.cur()?.ttype {
+                        v.filename = Some(self.cur()?.clone());
+                    } else {
+                        let mut err = self.err(
+                            "Unexpected Token",
+                            &format!(
+                                "Wanted {:?} for VACUUM stmt with {:?}, got {:?}",
+                                Type::String("<filename>".to_string()),
+                                Type::Keyword(Keyword::INTO),
+                                self.cur()?.ttype.clone()
+                            ),
+                            &self.cur()?.clone(),
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/lang_vacuum.html");
+                        self.errors.push(err);
+                    }
+                    self.advance(); // skip filename or error token
+                }
+
+                if self.cur()?.ttype != Type::Semicolon {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "Wanted {:?} for VACUUM stmt, got {:?}",
+                            Type::Semicolon,
+                            self.cur()?.ttype.clone()
+                        ),
+                        &self.cur()?.clone(),
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/lang_vacuum.html");
+                    self.errors.push(err);
+                }
+
+                Some(Box::new(v))
+            }
             _ => self.literal_value(),
         }
     }
@@ -100,7 +234,7 @@ impl<'a> Parser<'a> {
     /// see: https://www.sqlite.org/syntax/literal-value.html
     fn literal_value(&mut self) -> Option<Box<dyn Node>> {
         let cur = self.cur()?;
-        let r: Option<Box<dyn Node>> = match cur.ttype {
+        match cur.ttype {
             Type::String(_)
             | Type::Number(_)
             | Type::Blob(_)
@@ -109,7 +243,10 @@ impl<'a> Parser<'a> {
             | Type::Keyword(Keyword::CURRENT_TIME)
             | Type::Keyword(Keyword::CURRENT_DATE)
             | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
-                Some(Box::new(Literal { t: cur.clone() }))
+                let s: Option<Box<dyn Node>> = Some(Box::new(Literal { t: cur.clone() }));
+                // skipping over the current character
+                self.advance();
+                s
             }
             _ => {
                 let mut err = self.err("Unexpected Token", &format!("Wanted a literal (any of number,string,blob,null,true,false,CURRENT_TIME,CURRENT_DATE,CURRENT_DATE), got {:?}", cur.ttype),cur, Rule::Syntax);
@@ -117,8 +254,6 @@ impl<'a> Parser<'a> {
                 self.errors.push(err);
                 None
             }
-        };
-        self.advance();
-        r
+        }
     }
 }

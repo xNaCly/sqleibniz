@@ -52,6 +52,16 @@ pub enum Keyword {
     EXCLUDE,
     EXCLUSIVE,
     EXISTS,
+    /// An SQL statement can be preceded by the keyword "EXPLAIN" or by the phrase "EXPLAIN QUERY PLAN".
+    /// Either modification causes the SQL statement to behave as a query and to return information about how the SQL statement would have operated if the EXPLAIN keyword or phrase had been omitted.
+    /// The output from EXPLAIN and EXPLAIN QUERY PLAN is intended for interactive analysis and troubleshooting only. The details of the output format are subject to change from one release of SQLite to the next.
+    /// Applications should not use EXPLAIN or EXPLAIN QUERY PLAN since their exact behavior is variable and only partially documented.
+    /// When the EXPLAIN keyword appears by itself it causes the statement to behave as a query that returns the sequence of virtual machine instructions it would have used to execute the command had the EXPLAIN keyword not been present.
+    /// When the EXPLAIN QUERY PLAN phrase appears, the statement returns high-level information regarding the query plan that would have been used.
+    ///
+    /// see:
+    /// - https://www.sqlite.org/eqp.html
+    /// - https://www.sqlite.org/lang_explain.html
     EXPLAIN,
     FAIL,
     FILTER,
