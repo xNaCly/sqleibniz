@@ -15,9 +15,10 @@ macro_rules! test_group {
          )*
         }
     };
-    ("pass",$group_name:ident,$($name:ident:$value:literal),*) => {
+    ("pass",$group_name:ident,$($name:ident:$value:literal=$expected:expr),*) => {
         mod $group_name {
         use crate::lexer;
+        use crate::types::Type;
         $(
             #[test]
             fn $name() {
@@ -26,6 +27,7 @@ macro_rules! test_group {
                 let toks = l.run();
                 assert_ne!(toks.len(), 0);
                 assert_eq!(l.errors.len(), 0);
+                assert_eq!(toks[0].ttype, $expected);
             }
          )*
         }
@@ -37,52 +39,55 @@ mod should_pass {
     test_group! {
         "pass",
         booleans,
-        r#true: "true",
-        true_upper: "TRUE",
-        r#false: "false",
-        false_upper: "FALSE"
+        r#true: "true"=Type::Boolean(true),
+        true_upper: "TRUE"=Type::Boolean(true),
+        r#false: "false"=Type::Boolean(false),
+        false_upper: "FALSE"=Type::Boolean(false)
     }
 
     test_group! {
         "pass",
         string,
-        string: "'text'",
-        empty_string: "''"
+        string: "'text'"=Type::String(String::from("text")),
+        empty_string: "''"=Type::String(String::from(""))
     }
 
     test_group! {
         "pass",
         symbol,
-        star: "* ",
-        semicolon: "; ",
-        comma: ", ",
-        percent: "% "
+        // d is needed, because the lexer interprets . as a float start if the next character is
+        // not an identifier, if so, it detects Type::Dot
+        dot: ".d"=Type::Dot,
+        star: "* "=Type::Asteriks,
+        semicolon: "; "=Type::Semicolon,
+        comma: ", "=Type::Comma,
+        percent: "% "=Type::Percent
     }
 
     test_group! {
         "pass",
         number,
         // edge cases
-        zero: "0",
-        zero_float: ".0",
-        zero_hex: "0x0",
-        zero_float_with_prefix_zero: "0.0",
+        zero: "0"=Type::Number(0.0),
+        zero_float: ".0"=Type::Number(0.0),
+        zero_hex: "0x0"=Type::Number(0.0),
+        zero_float_with_prefix_zero: "0.0"=Type::Number(0.0),
 
-        float_all_paths: "1_000.12_000e+3_5",
-        float_all_paths2: ".1_000e-1_2",
-        hex: "0xABCDEF",
-        hex_large_x: "0XABCDEF"
+        float_all_paths: "1_000.12_000e+3_5"=Type::Number(1.00012e+38),
+        float_all_paths2: ".1_000e-1_2"=Type::Number(1e-13),
+        hex: "0xABCDEF"=Type::Number(0xABCDEF as f64),
+        hex_large_x: "0XABCDEF"=Type::Number(0xABCDEF as f64)
     }
 
     test_group! {
         "pass",
         blob,
         // edge cases
-        empty: "X''",
-        empty_small: "x''",
+        empty: "X''"=Type::Blob(vec![]),
+        empty_small: "x''"=Type::Blob(vec![]),
 
-        filled: "X'12345'",
-        filled_small: "x'12345'"
+        filled: "X'12345'"=Type::Blob(vec![49, 50, 51, 52, 53]),
+        filled_small: "x'1234567'"=Type::Blob(vec![49, 50, 51, 52, 53, 54, 55])
     }
 }
 
