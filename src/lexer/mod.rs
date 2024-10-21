@@ -295,6 +295,8 @@ impl<'a> Lexer<'a> {
                             }
                         };
                     };
+                    // this skips the advance at the bottom of the while loop
+                    continue;
                 }
                 // blobs, see above
                 'X' | 'x' => {

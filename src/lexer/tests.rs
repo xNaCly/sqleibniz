@@ -58,10 +58,10 @@ mod should_pass {
         // d is needed, because the lexer interprets . as a float start if the next character is
         // not an identifier, if so, it detects Type::Dot
         dot: ".d"=Type::Dot,
-        star: "* "=Type::Asteriks,
-        semicolon: "; "=Type::Semicolon,
-        comma: ", "=Type::Comma,
-        percent: "% "=Type::Percent
+        star: "*"=Type::Asteriks,
+        semicolon: ";"=Type::Semicolon,
+        comma: ","=Type::Comma,
+        percent: "%"=Type::Percent
     }
 
     test_group! {
