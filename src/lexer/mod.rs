@@ -58,7 +58,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_ident(&self, c: char) -> bool {
-        matches!(c, 'a'..='z'| 'A'..='Z'| '_')
+        matches!(c, 'a'..='z'| 'A'..='Z'| '_' | '0'..'9')
     }
 
     fn is(&self, c: char) -> bool {
@@ -209,7 +209,7 @@ impl<'a> Lexer<'a> {
                     // in floating point numbers
                     if self.is('.') && !(self.next_equals('e') || self.next_equals('E')) {
                         let next = self.next();
-                        if next.is_some() && self.is_ident(next.unwrap()) {
+                        if next.is_some() && matches!(next.unwrap(), 'a'..='z' | 'A'..='Z' | '_') {
                             r.push(Token {
                                 ttype: Type::Dot,
                                 line: self.line,
