@@ -15,20 +15,20 @@ use crate::types::Token;
 ///     }
 macro_rules! node {
     ($node_name:ident,$documentation:literal,$($field_name:ident:$field_type:ty),*) => {
-#[derive(Debug)]
-#[doc = $documentation]
-pub struct $node_name {
-    /// predefined for all structures defined with the node! macro, holds the token of the ast node
-    pub t: Token,
-    $(
-        pub $field_name: $field_type,
-    )*
-}
-impl Node for $node_name {
-    fn token(&self) -> &Token {
-        &self.t
-    }
-}
+        #[derive(Debug)]
+        #[doc = $documentation]
+        pub struct $node_name {
+            /// predefined for all structures defined with the node! macro, holds the token of the ast node
+            pub t: Token,
+            $(
+                pub $field_name: $field_type,
+            )*
+        }
+        impl Node for $node_name {
+            fn token(&self) -> &Token {
+                &self.t
+            }
+        }
     };
 }
 
