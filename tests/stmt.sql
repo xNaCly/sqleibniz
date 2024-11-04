@@ -1,15 +1,8 @@
-/*
-
-stmt.sql displays the current progress of sqleibniz by highlighting all
-currently available statements.
-
-*/
-
+/* stmt.sql displays the current progress of sqleibniz by highlighting all currently available statements. */
 
 -- https://www.sqlite.org/lang_explain.html
--- this is NULL, because the parser wants a statement after this and the parser doesnt yet support one
-EXPLAIN NULL;
-EXPLAIN QUERY PLAN NULL;
+EXPLAIN SELECT;
+EXPLAIN QUERY PLAN VACUUM;
 
 -- https://www.sqlite.org/lang_vacuum.html
 VACUUM;
