@@ -102,6 +102,7 @@ impl<'a> Parser<'a> {
             }
             err.doc_url = Some("https://www.sqlite.org/syntax/sql-stmt.html");
             self.errors.push(err);
+            self.advance();
         }
         self.advance(); // we advance either way to keep the parser error resistant
     }
