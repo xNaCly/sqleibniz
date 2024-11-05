@@ -51,7 +51,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_equals(&mut self, c: char) -> bool {
+    fn next_is(&mut self, c: char) -> bool {
         self.source
             .get(self.pos + 1)
             .is_some_and(|cc| *cc == c as u8)
@@ -164,10 +164,10 @@ impl<'a> Lexer<'a> {
                 '\t' | '\r' | ' ' | '\n' => {}
                 // comments, see: https://www.sqlite.org/lang_comment.html
                 '/' => {
-                    if self.next_equals('*') {
+                    if self.next_is('*') {
                         while !self.is_eof() {
                             self.advance();
-                            if self.is('*') && self.next_equals('/') {
+                            if self.is('*') && self.next_is('/') {
                                 break;
                             }
                         }
@@ -175,7 +175,7 @@ impl<'a> Lexer<'a> {
                 }
                 // comments, see: https://www.sqlite.org/lang_comment.html
                 '-' => {
-                    if self.next_equals('-') {
+                    if self.next_is('-') {
                         while !self.is_eof() {
                             self.advance();
                             if self.is('\n') {
@@ -201,7 +201,7 @@ impl<'a> Lexer<'a> {
                     // check if next is not e/E, because these are used as scientifc notation
                     // in floating point numbers
                     if self.is('.') 
-                        && !(self.next_equals('e') || self.next_equals('E')) 
+                        && !(self.next_is('e') || self.next_is('E')) 
                         && self.next().is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
                         {
                             r.push(Token {
@@ -217,7 +217,7 @@ impl<'a> Lexer<'a> {
                     let line_start = self.line_pos;
 
                     // hexadecimal number
-                    let is_hex = if self.is('0') && (self.next_equals('x') || self.next_equals('X'))
+                    let is_hex = if self.is('0') && (self.next_is('x') || self.next_is('X'))
                     {
                         self.advance();
                         self.advance();
@@ -295,7 +295,7 @@ impl<'a> Lexer<'a> {
                 'X' | 'x' => {
                     let line_start = self.line_pos;
                     let line = self.line;
-                    if self.next_equals('\'') {
+                    if self.next_is('\'') {
                         self.advance(); // skip X
                         let result = self.string();
                         if let Ok(str_tok) = &result {
