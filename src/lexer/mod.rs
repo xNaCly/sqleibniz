@@ -1,6 +1,6 @@
 use std::f64;
 
-use crate::error::{self, Error};
+use crate::error::{self, Error, ImprovedLine};
 use crate::rules::Rule;
 use crate::types::{Keyword, Token, Type};
 
@@ -39,6 +39,7 @@ impl<'a> Lexer<'a> {
 
     fn err(&self, msg: &str, note: &str, start: usize, rule: Rule) -> Error {
         Error {
+            improved_line: None,
             file: self.name.to_string(),
             line: self.line,
             rule,
@@ -119,6 +120,10 @@ impl<'a> Lexer<'a> {
                 err.line = line;
                 err.doc_url =
                     Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                err.improved_line = Some(ImprovedLine{
+                    snippet: "'",
+                    start: err.end,
+                });
                 return Err(err);
             } else if self.is('\'') {
                 return Ok(Token {

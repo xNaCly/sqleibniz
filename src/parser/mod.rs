@@ -1,5 +1,5 @@
 use crate::{
-    error::Error,
+    error::{Error, ImprovedLine},
     rules::Rule,
     types::{Keyword, Token, Type},
 };
@@ -37,6 +37,7 @@ impl<'a> Parser<'a> {
 
     fn err(&self, msg: &str, note: &str, start: &Token, rule: Rule) -> Error {
         Error {
+            improved_line: None,
             file: self.name.to_string(),
             line: start.line,
             rule,
@@ -94,6 +95,10 @@ impl<'a> Parser<'a> {
                 err.msg = "Missing semicolon".into();
                 err.note = "Terminate statements with ';'".into();
                 err.rule = Rule::Semicolon;
+                err.improved_line = Some(ImprovedLine {
+                    snippet: ";",
+                    start: cur.end,
+                });
             }
             err.doc_url = Some("https://www.sqlite.org/syntax/sql-stmt.html");
             self.errors.push(err);

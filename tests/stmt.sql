@@ -7,5 +7,5 @@ EXPLAIN QUERY PLAN VACUUM;
 -- https://www.sqlite.org/lang_vacuum.html
 VACUUM;
 VACUUM schema_name;
-VACUUM INTO 'filename';
+VACUUM INTO 'filename
 VACUUM schema_name INTO 'filename';

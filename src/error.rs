@@ -3,6 +3,12 @@ use std::{fs, io::BufRead, path::PathBuf};
 use crate::rules::Rule;
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ImprovedLine {
+    pub snippet: &'static str,
+    pub start: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Error {
     pub file: String,
     pub line: usize,
@@ -11,6 +17,7 @@ pub struct Error {
     pub msg: String,
     pub start: usize,
     pub end: usize,
+    pub improved_line: Option<ImprovedLine>,
     pub doc_url: Option<&'static str>,
 }
 
@@ -105,12 +112,7 @@ impl Error {
             }
         }
 
-        let mut offending_line = String::from(lines.get(self.line).unwrap());
-        if self.rule == Rule::Semicolon {
-            offending_line.push_str(Color::Green.as_str());
-            offending_line.push(';');
-            offending_line.push_str(Color::Reset.as_str());
-        }
+        let offending_line = String::from(lines.get(self.line).unwrap());
         print_str_colored(&format!(" {:02} | ", self.line + 1), Color::Blue);
         print_str!(offending_line);
         print_str_colored("\n    |", Color::Blue);
@@ -123,15 +125,27 @@ impl Error {
         print_str_colored(
             &format!(
                 " {}{} error occurs here.\n",
-                " ".repeat(if self.rule == Rule::Semicolon {
-                    self.start + 1
-                } else {
-                    self.start
-                }),
+                " ".repeat(self.start),
                 "^".repeat(repeat)
             ),
             Color::Red,
         );
+
+        if let Some(new) = &self.improved_line {
+            print_str_colored("    + ", Color::Green);
+            print_str!(offending_line);
+            print_str_colored(&new.snippet, Color::Green);
+            print_str_colored("\n    | ", Color::Blue);
+            print_str_colored(
+                &format!(
+                    " {}{} possible fix.",
+                    " ".repeat(new.start),
+                    "^".repeat(new.snippet.len())
+                ),
+                Color::Green,
+            );
+            println!()
+        }
 
         if let Some(first_line) = lines.get(self.line + 1) {
             print_str_colored(&format!(" {:02} | ", self.line + 2), Color::Blue);
