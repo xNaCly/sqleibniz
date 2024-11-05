@@ -154,11 +154,7 @@ impl<'a> Lexer<'a> {
         };
 
         while !self.is_eof() {
-            let cc = match self.source.get(self.pos) {
-                Some(cc) => *cc,
-                _ => break,
-            } as char;
-            match cc {
+            match self.cur() {
                 // skipping whitespace
                 '\t' | '\r' | ' ' | '\n' => {}
                 // comments, see: https://www.sqlite.org/lang_comment.html
@@ -199,10 +195,9 @@ impl<'a> Lexer<'a> {
                     // only '.', with no digit following it is an indexing operation
                     // check if next is not e/E, because these are used as scientifc notation
                     // in floating point numbers
-                    if self.is('.') && !(self.next_equals('e') || self.next_equals('E')) {
-                        if self
-                            .next()
-                            .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+                    if self.is('.') 
+                        && !(self.next_equals('e') || self.next_equals('E')) 
+                        && self.next().is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
                         {
                             r.push(Token {
                                 ttype: Type::Dot,
@@ -213,7 +208,6 @@ impl<'a> Lexer<'a> {
                             self.advance();
                             continue;
                         };
-                    }
 
                     let line_start = self.line_pos;
 
@@ -361,21 +355,18 @@ impl<'a> Lexer<'a> {
                     while !self.is_eof() && self.is_ident(self.cur()) {
                         self.advance();
                     }
-                    let ident = String::from_utf8(
-                        self.source
+                    let chars = self.source
                             .get(start..self.pos)
                             .unwrap_or_default()
-                            .to_vec(),
-                    )
-                    .unwrap_or_default();
-                    let t: Type;
-                    if let Some(keyword) = Keyword::from_str(ident.as_str()) {
-                        t = Type::Keyword(keyword);
+                            .to_vec();
+                    let ident = String::from_utf8(chars).unwrap_or_default();
+                    let t: Type = if let Some(keyword) = Keyword::from_str(ident.as_str()) {
+                        Type::Keyword(keyword)
                     } else if ident.to_lowercase() == "true" || ident.to_lowercase() == "false" {
-                        t = Type::Boolean(ident.to_lowercase() == "true")
+                        Type::Boolean(ident.to_lowercase() == "true")
                     } else {
-                        t = Type::Ident(ident.clone());
-                    }
+                        Type::Ident(ident.clone())
+                    };
                     r.push(Token {
                         line: self.line,
                         ttype: t,

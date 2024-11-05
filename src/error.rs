@@ -105,7 +105,12 @@ impl Error {
             }
         }
 
-        let offending_line = lines.get(self.line).unwrap();
+        let mut offending_line = String::from(lines.get(self.line).unwrap());
+        if self.rule == Rule::Semicolon {
+            offending_line.push_str(Color::Green.as_str());
+            offending_line.push(';');
+            offending_line.push_str(Color::Reset.as_str());
+        }
         print_str_colored(&format!(" {:02} | ", self.line + 1), Color::Blue);
         print_str!(offending_line);
         print_str_colored("\n    |", Color::Blue);
@@ -118,7 +123,11 @@ impl Error {
         print_str_colored(
             &format!(
                 " {}{} error occurs here.\n",
-                " ".repeat(self.start),
+                " ".repeat(if self.rule == Rule::Semicolon {
+                    self.start + 1
+                } else {
+                    self.start
+                }),
                 "^".repeat(repeat)
             ),
             Color::Red,

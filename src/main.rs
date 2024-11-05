@@ -70,7 +70,7 @@ fn main() {
 
         if !toks.is_empty() {
             let mut parser = Parser::new(toks, file.name.as_str());
-            let _ = dbg!(parser.parse());
+            let _ = parser.parse();
             errors.push(parser.errors);
         }
 

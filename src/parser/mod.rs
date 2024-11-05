@@ -62,10 +62,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is(&self, t: Type) -> bool {
-        if let Some(tt) = self.cur() {
-            return tt.ttype == t;
-        }
-        false
+        self.cur().map_or(false, |tok| tok.ttype == t)
     }
 
     /// checks if type of current token is equal to t, otherwise pushes an error, advances either way
@@ -77,7 +74,7 @@ impl<'a> Parser<'a> {
                     let last = self.tokens.get(self.pos - 1).unwrap();
                     &Token {
                         ttype: Type::Eof,
-                        start: last.start,
+                        start: last.end,
                         end: last.end,
                         line: last.line,
                     }
@@ -93,6 +90,11 @@ impl<'a> Parser<'a> {
                 cur,
                 Rule::Syntax,
             );
+            if t == Type::Semicolon {
+                err.msg = "Missing semicolon".into();
+                err.note = "Terminate statements with ';'".into();
+                err.rule = Rule::Semicolon;
+            }
             err.doc_url = Some("https://www.sqlite.org/syntax/sql-stmt.html");
             self.errors.push(err);
         }
@@ -100,10 +102,9 @@ impl<'a> Parser<'a> {
     }
 
     fn next_is(&self, t: Type) -> bool {
-        match self.tokens.get(self.pos + 1) {
-            None => false,
-            Some(token) => token.ttype == t,
-        }
+        self.tokens
+            .get(self.pos + 1)
+            .map_or(false, |tok| tok.ttype == t)
     }
 
     pub fn parse(&mut self) -> Vec<Option<Box<dyn Node>>> {
@@ -115,7 +116,9 @@ impl<'a> Parser<'a> {
         let mut r = vec![];
         while !self.is_eof() {
             let stmt = self.sql_stmt_prefix();
-            r.push(stmt);
+            if stmt.is_some() {
+                r.push(stmt);
+            }
             self.consume(Type::Semicolon);
         }
         r
@@ -248,21 +251,6 @@ impl<'a> Parser<'a> {
                 self.errors.push(err);
             }
             self.advance(); // skip filename or error token
-        }
-
-        if self.cur()?.ttype != Type::Semicolon {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!(
-                    "Wanted {:?} for VACUUM stmt, got {:?}",
-                    Type::Semicolon,
-                    self.cur()?.ttype.clone()
-                ),
-                &self.cur()?.clone(),
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/lang_vacuum.html");
-            self.errors.push(err);
         }
 
         Some(Box::new(v))

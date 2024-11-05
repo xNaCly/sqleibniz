@@ -20,6 +20,8 @@ pub enum Rule {
     InvalidBlob,
     /// The source file contains a structure with incorrect syntax
     Syntax,
+    /// The source file is missing a semicolon
+    Semicolon,
 }
 
 #[derive(Deserialize, Debug)]
@@ -46,6 +48,7 @@ impl Rule {
             Self::InvalidNumericLiteral => "InvalidNumericLiteral",
             Self::InvalidBlob => "InvalidBlob",
             Self::Syntax => "Syntax",
+            Self::Semicolon => "Semicolon",
         }
     }
 
@@ -61,6 +64,7 @@ impl Rule {
             Self::InvalidNumericLiteral => "The source file contains an invalid numeric literal",
             Self::InvalidBlob => "The source file contains an invalid blob literal",
             Self::Syntax => "The source file contains a structure with incorrect syntax",
+            Self::Semicolon => "The source file is missing a semicolon",
         }
     }
 }

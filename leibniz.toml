@@ -1,15 +1,16 @@
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
 [disabled] 
-# by default, sqleibniz specific errors are disabled:
-rules = [ 
-    "NoContent",
-    "NoStatements", 
-    "Unimplemented",
+    rules = [ 
+        # by default, sqleibniz specific errors are disabled:
+        "NoContent",
+        "NoStatements", 
+        "Unimplemented",
 
-    # ignoring sqlite specific diagnostics:
-    # "UnterminatedString", # a not closed string was found
-    # "UnknownCharacter", # an unknown character was found
-    # "InvalidNumericLiteral", # an invalid numeric literal was found
-    # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
-]
+        # ignoring sqlite specific diagnostics:
+        # "UnterminatedString", # a not closed string was found
+        # "UnknownCharacter", # an unknown character was found
+        # "InvalidNumericLiteral", # an invalid numeric literal was found
+        # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
+        # "Semicolon", # a semicolon is missing
+    ]
