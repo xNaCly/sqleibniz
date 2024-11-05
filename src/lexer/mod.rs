@@ -120,7 +120,7 @@ impl<'a> Lexer<'a> {
                 err.line = line;
                 err.doc_url =
                     Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
-                err.improved_line = Some(ImprovedLine{
+                err.improved_line = Some(ImprovedLine {
                     snippet: "'",
                     start: err.end,
                 });
@@ -185,12 +185,10 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
-                '\'' => {
-                    match self.string() {
-                        Ok(str_tok) => r.push(str_tok),
-                        Err(err) => self.errors.push(err),
-                    }
-                }
+                '\'' => match self.string() {
+                    Ok(str_tok) => r.push(str_tok),
+                    Err(err) => self.errors.push(err),
+                },
                 '*' => r.push(self.single(Type::Asteriks)),
                 ';' => r.push(self.single(Type::Semicolon)),
                 ',' => r.push(self.single(Type::Comma)),
@@ -200,25 +198,26 @@ impl<'a> Lexer<'a> {
                     // only '.', with no digit following it is an indexing operation
                     // check if next is not e/E, because these are used as scientifc notation
                     // in floating point numbers
-                    if self.is('.') 
-                        && !(self.next_is('e') || self.next_is('E')) 
-                        && self.next().is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
-                        {
-                            r.push(Token {
-                                ttype: Type::Dot,
-                                line: self.line,
-                                start: self.line_pos,
-                                end: self.line_pos,
-                            });
-                            self.advance();
-                            continue;
-                        };
+                    if self.is('.')
+                        && !(self.next_is('e') || self.next_is('E'))
+                        && self
+                            .next()
+                            .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+                    {
+                        r.push(Token {
+                            ttype: Type::Dot,
+                            line: self.line,
+                            start: self.line_pos,
+                            end: self.line_pos,
+                        });
+                        self.advance();
+                        continue;
+                    };
 
                     let line_start = self.line_pos;
 
                     // hexadecimal number
-                    let is_hex = if self.is('0') && (self.next_is('x') || self.next_is('X'))
-                    {
+                    let is_hex = if self.is('0') && (self.next_is('x') || self.next_is('X')) {
                         self.advance();
                         self.advance();
                         true
@@ -297,36 +296,28 @@ impl<'a> Lexer<'a> {
                     let line = self.line;
                     if self.next_is('\'') {
                         self.advance(); // skip X
-                        let result = self.string();
-                        if let Ok(str_tok) = &result {
-                            match &str_tok.ttype {
-                                Type::String(str) => {
-                                    let mut had_bad_hex = false;
-                                    for (idx, c) in str.chars().enumerate() {
-                                        match c {
-                                            'a'..='f' => {}
-                                            'A'..='F' => {}
-                                            '0'..='9' => {}
-                                            _ => {
-                                                let mut err = self.err("Bad blob data", &format!("a Blob is hexadecimal data, '{}' is not a valid hexadecimal digit (a..=f, A..=F, 0..=9)", c), line_start+2+idx, Rule::InvalidBlob);
-                                                err.end = line_start + 2 + idx;
-                                                err.doc_url = Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
-                                                self.errors.push(err);
-                                                had_bad_hex = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    if !had_bad_hex {
-                                        r.push(Token {
-                                            line,
-                                            ttype: Type::Blob(str.as_bytes().to_vec()),
-                                            start: str_tok.start,
-                                            end: str_tok.end,
-                                        });
+                        if let Ok(str_tok) = self.string() {
+                            if let Type::String(str) = &str_tok.ttype {
+                                let mut had_bad_hex = false;
+                                for (idx, c) in str.chars().enumerate() {
+                                    if !matches!(c, 'a'..='f'|'A'..='F'|'0'..='9') {
+                                        let mut err = self.err("Bad blob data", &format!("a Blob is hexadecimal data, '{}' is not valid hex (a..=f, A..=F, 0..=9)", c), line_start+2+idx, Rule::InvalidBlob);
+                                        err.end = line_start + 2 + idx;
+                                        err.doc_url = Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
+                                        self.errors.push(err);
+                                        had_bad_hex = true;
+                                        break;
                                     }
                                 }
-                                _ => panic!("Impossible branch"),
+                                if had_bad_hex {
+                                    break;
+                                }
+                                r.push(Token {
+                                    line,
+                                    ttype: Type::Blob(str.as_bytes().to_vec()),
+                                    start: str_tok.start,
+                                    end: str_tok.end,
+                                });
                             }
                         } else {
                             let mut err = self.err(
@@ -360,10 +351,11 @@ impl<'a> Lexer<'a> {
                     while !self.is_eof() && self.is_ident(self.cur()) {
                         self.advance();
                     }
-                    let chars = self.source
-                            .get(start..self.pos)
-                            .unwrap_or_default()
-                            .to_vec();
+                    let chars = self
+                        .source
+                        .get(start..self.pos)
+                        .unwrap_or_default()
+                        .to_vec();
                     let ident = String::from_utf8(chars).unwrap_or_default();
                     let t: Type = if let Some(keyword) = Keyword::from_str(ident.as_str()) {
                         Type::Keyword(keyword)
