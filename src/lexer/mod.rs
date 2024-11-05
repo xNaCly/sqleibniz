@@ -51,21 +51,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn next_equals(&mut self, c: char) -> bool {
-        match self.source.get(self.pos + 1) {
-            Some(cc) => *cc == c as u8,
-            _ => false,
-        }
+        self.source
+            .get(self.pos + 1)
+            .is_some_and(|cc| *cc == c as u8)
     }
 
     fn is_ident(&self, c: char) -> bool {
-        matches!(c, 'a'..='z'| 'A'..='Z'| '_' | '0'..'9')
+        matches!(c, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9')
     }
 
     fn is(&self, c: char) -> bool {
-        match self.source.get(self.pos) {
-            Some(cc) => *cc as char == c,
-            _ => false,
-        }
+        self.source.get(self.pos).is_some_and(|cc| *cc as char == c)
     }
 
     fn is_eof(&self) -> bool {
@@ -74,20 +70,17 @@ impl<'a> Lexer<'a> {
 
     /// Specifically matches https://www.sqlite.org/syntax/numeric-literal.html
     fn is_sqlite_num(&self) -> bool {
-        match self.cur() {
-            // exponent notation with +-
-            '+' | '-' => true,
-            // sqlite allows for separating numbers by _
-            '_' => true,
-            // floating point
-            '.' => true,
-            // hexadecimal
-            'a'..='f' => true,
-            'A'..='F' => true,
-            // decimal
-            '0'..='9' => true,
-            _ => false,
-        }
+        matches!(self.cur(), 
+                 // exponent notation with +-
+                 '+' | '-' |
+                 // sqlite allows for separating numbers by _
+                 '_' |
+                 // floating point
+                 '.' |
+                 // hexadecimal
+                 'a'..='f' | 'A'..='F' |
+                 // decimal
+                 '0'..='9')
     }
 
     fn cur(&self) -> char {
@@ -125,7 +118,7 @@ impl<'a> Lexer<'a> {
                 err.end = end + 1;
                 err.line = line;
                 err.doc_url =
-                    Some("https://www146.sqlite.org/lang_expr.html#literal_values_constants_");
+                    Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
                 return Err(err);
             } else if self.is('\'') {
                 return Ok(Token {
@@ -192,8 +185,7 @@ impl<'a> Lexer<'a> {
                 }
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '\'' => {
-                    let result = self.string();
-                    match result {
+                    match self.string() {
                         Ok(str_tok) => r.push(str_tok),
                         Err(err) => self.errors.push(err),
                     }
@@ -208,8 +200,10 @@ impl<'a> Lexer<'a> {
                     // check if next is not e/E, because these are used as scientifc notation
                     // in floating point numbers
                     if self.is('.') && !(self.next_equals('e') || self.next_equals('E')) {
-                        let next = self.next();
-                        if next.is_some() && matches!(next.unwrap(), 'a'..='z' | 'A'..='Z' | '_') {
+                        if self
+                            .next()
+                            .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+                        {
                             r.push(Token {
                                 ttype: Type::Dot,
                                 line: self.line,
