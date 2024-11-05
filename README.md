@@ -22,18 +22,41 @@ A static analysis tool for sql, check syntax errors as well as semantic errors o
 
 ## Installation
 
-<!-- TODO: -->
+### cargo 
+
+```
+cargo install --git https://github.com/xnacly/sqleibniz
+```
+
+#### from source
 
 ```shell
+git clone https://github.com/xnacly/sqleibniz
+cargo install --path .
+```
 
+### via `make`
+
+> this builds the project with cargo and moves the resulting binary to
+> `/usr/bin/`.
+
+```shell
+git clone https://github.com/xnacly/sqleibniz
+make
+```
+
+Uninstall via:
+
+```shell
+make uninstall
 ```
 
 ## Usage
 
-Screenshot:
-
-![image](https://github.com/user-attachments/assets/cb752211-1233-46d5-809e-319f2df31754)
-
+```shell
+sqleibniz <file>
+sqleibniz <file1> <file2>
+```
 
 ## Configuration
 
@@ -46,16 +69,18 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
 [disabled] 
-# by default, sqleibniz specific errors are disabled:
-rules = [ 
-    "NoContent",
-    "NoStatements", 
-    "Unimplemented",
+    rules = [ 
+        # by default, sqleibniz specific errors are disabled:
+        "NoContent",
+        "NoStatements", 
+        "Unimplemented",
 
-    # ignoring sqlite specific diagnostics:
-    # "UnterminatedString", # a not closed string was found
-    # "UnknownCharacter", # an unknown character was found
-    # "InvalidNumericLiteral", # an invalid numeric literal was found
-    # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
-]
+        # ignoring sqlite specific diagnostics:
+        # "UnterminatedString", # a not closed string was found
+        # "UnknownCharacter", # an unknown character was found
+        # "InvalidNumericLiteral", # an invalid numeric literal was found
+        # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
+        # "Syntax", # a structure with incorrect syntax was found
+        # "Semicolon", # a semicolon is missing
+    ]
 ```

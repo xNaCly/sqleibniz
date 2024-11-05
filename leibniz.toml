@@ -12,5 +12,6 @@
         # "UnknownCharacter", # an unknown character was found
         # "InvalidNumericLiteral", # an invalid numeric literal was found
         # "InvalidBlob", # an invalid blob literal was found (either bad hex data or incorrect syntax)
+        # "Syntax", # a structure with incorrect syntax was found
         # "Semicolon", # a semicolon is missing
     ]
