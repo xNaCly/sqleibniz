@@ -283,6 +283,7 @@ impl<'a> Parser<'a> {
                 let mut err = self.err("Unexpected Token", &format!("Wanted a literal (any of number,string,blob,null,true,false,CURRENT_TIME,CURRENT_DATE,CURRENT_DATE), got {:?}", cur.ttype),cur, Rule::Syntax);
                 err.doc_url = Some("https://www.sqlite.org/syntax/literal-value.html");
                 self.errors.push(err);
+                self.advance();
                 None
             }
         }
