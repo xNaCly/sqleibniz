@@ -91,6 +91,9 @@ pub enum Type {
     Comma,
     Equal,
 
+    /// Instructs the parser to skip all token until Type::Semicolon is hit
+    InstructionExpect,
+
     Eof,
 }
 
