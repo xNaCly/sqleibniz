@@ -89,6 +89,15 @@ mod should_pass {
         filled: "X'12345'"=vec![Type::Blob(vec![49, 50, 51, 52, 53])],
         filled_small: "x'1234567'"=vec![Type::Blob(vec![49, 50, 51, 52, 53, 54, 55])]
     }
+
+    test_group_pass_assert! {
+        sqleibniz_instructions,
+        expect: r"
+-- @sqleibniz::expect there is an error here
+EXPLAIN;
+; -- semicolon to not trigger Rule::NoStatements
+        "=vec![Type::Semicolon]
+    }
 }
 
 #[cfg(test)]

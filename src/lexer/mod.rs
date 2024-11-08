@@ -71,17 +71,12 @@ impl<'a> Lexer<'a> {
 
     /// Specifically matches https://www.sqlite.org/syntax/numeric-literal.html
     fn is_sqlite_num(&self) -> bool {
-        matches!(self.cur(), 
-                 // exponent notation with +-
-                 '+' | '-' |
-                 // sqlite allows for separating numbers by _
-                 '_' |
-                 // floating point
-                 '.' |
-                 // hexadecimal
-                 'a'..='f' | 'A'..='F' |
-                 // decimal
-                 '0'..='9')
+        // exponent notation with +-
+        // sqlite allows for separating numbers by _
+        // floating point
+        // hexadecimal
+        // decimal
+        matches!(self.cur(), '+' | '-' | '_' | '.' | 'a'..='f' | 'A'..='F' | '0'..='9')
     }
 
     fn cur(&self) -> char {
@@ -180,6 +175,46 @@ impl<'a> Lexer<'a> {
                             self.advance();
                             if self.is('\n') {
                                 break;
+                            } else if self.is('@') {
+                                // skip @
+                                self.advance();
+                                // sqleibniz instruction found
+                                let start = self.pos;
+                                let line_start = self.line_pos;
+                                while !self.is_eof() && !self.cur().is_whitespace() {
+                                    self.advance();
+                                }
+                                let bytes = self
+                                    .source
+                                    .get(start..self.pos)
+                                    .unwrap_or_default()
+                                    .to_vec();
+                                let instruction = String::from_utf8(bytes).unwrap_or_default();
+                                if instruction.starts_with("sqleibniz") {
+                                    let function =
+                                        instruction.split("::").last().unwrap_or_default();
+                                    match function {
+                                        "expect" => {
+                                            while !self.is_eof() && !self.is(';') {
+                                                // TODO: skip ; in comments
+                                                self.advance();
+                                            }
+                                        }
+                                        _ => {
+                                            let mut err = self.err(
+                                                "Unknown sqleibniz instruction",
+                                                &format!(
+                                                    "{} is not a valid sqleibniz instruction",
+                                                    instruction
+                                                ),
+                                                line_start,
+                                                Rule::BadSqleibnizInstruction,
+                                            );
+                                            err.end = self.line_pos;
+                                            self.errors.push(err);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

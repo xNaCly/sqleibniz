@@ -2,6 +2,11 @@
 
 A static analysis tool for sql, check syntax errors as well as semantic errors on snippets or full schemata
 
+
+> [!WARNING]  
+> Sqleibniz is in early stages of development, please keep this in mind before
+> creating issues - contributions are always welcome 💗
+
 ## Features
 
 - static sql analysis:
@@ -58,7 +63,7 @@ sqleibniz <file>
 sqleibniz <file1> <file2>
 ```
 
-## Configuration
+### Configuration
 
 Sqleibniz can be configured via a `leibniz.toml` file, this file has to be
 accessible to sqleibniz by existing at the path sqleibniz is invoked at.
@@ -71,9 +76,10 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 [disabled] 
     rules = [ 
         # by default, sqleibniz specific errors are disabled:
-        "NoContent",
-        "NoStatements", 
-        "Unimplemented",
+        "NoContent", # source file is empty
+        "NoStatements", # source file contains no statements
+        "Unimplemented", # construct is not implemented yet
+        "BadSqleibnizInstruction", # source file contains a bad sqleibniz instruction
 
         # ignoring sqlite specific diagnostics:
         # "UnterminatedString", # a not closed string was found
@@ -84,3 +90,60 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
         # "Semicolon", # a semicolon is missing
     ]
 ```
+
+
+### sqleibniz instructions
+
+A sqleibniz instrution is prefixed with `@sqleibniz::` and written inside of a
+sql single line comment.
+
+#### `expect`
+
+In a similar fashion to ignoring diagnostics via the configuration in
+`leibniz.toml`, sqleibniz allows the user to expect diagnostics in the source
+file and omit them on a statement by statement basis. To do so, a comment
+containing a sqleibniz instruction has to be issued:
+
+```sql
+-- will not cause a diagnostic
+-- @sqleibniz::expect <explaination for instruction usage here>
+
+-- incorrect, because EXPLAIN wants a sql stmt
+EXPLAIN 25; 
+
+-- will cause a diagnostic
+-- incorrect, because EXPLAIN wants a sql stmt
+EXPLAIN QUERY PLAN 25; 
+```
+
+Passing the above file to `sqleibniz`:
+
+```text
+warn: Ignoring the following diagnostics, according to 'leibniz.toml':
+ -> NoContent
+ -> NoStatements
+ -> Unimplemented
+ -> BadSqleibnizInstruction
+============================== ./test.sql ==============================
+error[Syntax]: Unexpected Literal
+ -> /home/magr6/programming/sqleibniz/test.sql:9:20
+ 07 | -- will cause a diagnostic
+ 08 | -- incorrect, because EXPLAIN wants a sql stmt
+ 09 | EXPLAIN QUERY PLAN 25; 
+    |                    ^^ error occurs here.
+    |
+    ~ note: No top level literals, such as Number(25.0) allowed.
+  * Syntax: The source file contains a structure with incorrect syntax
+=============================== Summary ================================
+[-] ./test.sql:
+    1 Error(s) detected
+    0 Error(s) ignored
+
+=> 0/1 Files verified successfully, 1 verification failed.
+```
+
+The way `@sqleibniz::expect` works, is by not tokenizing and thus not parsing
+the statement directly after the sqleibniz instruction - a statement is
+terminated via `;`. `@sqleibniz::expect` therefore supports ignoring diagnostics
+for statements spanning either a single line or multiple lines.
+
