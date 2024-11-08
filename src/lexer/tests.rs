@@ -62,7 +62,8 @@ mod should_pass {
         star: "*"=vec![Type::Asteriks],
         semicolon: ";"=vec![Type::Semicolon],
         comma: ","=vec![Type::Comma],
-        percent: "%"=vec![Type::Percent]
+        percent: "%"=vec![Type::Percent],
+        equal: "="=vec![Type::Equal]
     }
 
     test_group_pass_assert! {
