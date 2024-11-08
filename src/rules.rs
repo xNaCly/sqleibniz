@@ -9,6 +9,9 @@ pub enum Rule {
     NoStatements,
     /// Source file contains constructs sqleibniz does not yet understand
     Unimplemented,
+    /// Source file contains invalid sqleibniz instruction
+    BadSqleibnizInstruction,
+
     /// Source file contains an unterminated string
     UnterminatedString,
     /// The source file contains an unknown character
@@ -49,6 +52,7 @@ impl Rule {
             Self::InvalidBlob => "InvalidBlob",
             Self::Syntax => "Syntax",
             Self::Semicolon => "Semicolon",
+            Self::BadSqleibnizInstruction => "BadSqleibnizInstruction",
         }
     }
 
@@ -65,6 +69,9 @@ impl Rule {
             Self::InvalidBlob => "The source file contains an invalid blob literal",
             Self::Syntax => "The source file contains a structure with incorrect syntax",
             Self::Semicolon => "The source file is missing a semicolon",
+            Self::BadSqleibnizInstruction => {
+                "The source file contains an invalid sqleibniz instruction"
+            }
         }
     }
 }
