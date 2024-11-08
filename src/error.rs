@@ -131,21 +131,22 @@ impl Error {
             Color::Red,
         );
 
-        if let Some(new) = &self.improved_line {
-            print_str_colored("    + ", Color::Green);
-            print_str!(offending_line);
-            print_str_colored(&new.snippet, Color::Green);
-            print_str_colored("\n    | ", Color::Blue);
-            print_str_colored(
-                &format!(
-                    " {}{} possible fix.",
-                    " ".repeat(new.start),
-                    "^".repeat(new.snippet.len())
-                ),
-                Color::Green,
-            );
-            println!()
-        }
+        // TODO: rework this, inconsistently corret
+        // if let Some(new) = &self.improved_line {
+        //     print_str_colored("    + ", Color::Green);
+        //     print_str!(offending_line);
+        //     print_str_colored(&new.snippet, Color::Green);
+        //     print_str_colored("\n    | ", Color::Blue);
+        //     print_str_colored(
+        //         &format!(
+        //             " {}{} possible fix.",
+        //             " ".repeat(new.start),
+        //             "^".repeat(new.snippet.len())
+        //         ),
+        //         Color::Green,
+        //     );
+        //     println!()
+        // }
 
         if let Some(first_line) = lines.get(self.line + 1) {
             print_str_colored(&format!(" {:02} | ", self.line + 2), Color::Blue);
