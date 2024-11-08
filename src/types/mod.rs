@@ -89,6 +89,7 @@ pub enum Type {
     Semicolon,
     Percent,
     Comma,
+    Equal,
 
     Eof,
 }
