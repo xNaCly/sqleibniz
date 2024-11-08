@@ -62,6 +62,7 @@ VACUUM 25;
 EXPLAIN VACUUM;
         "=vec![Type::Keyword(Keyword::EXPLAIN)]
     }
+
     test_group_pass_assert! {
         sql_stmt_prefix,
         explain: r#"EXPLAIN VACUUM;"#=vec![Type::Keyword(Keyword::EXPLAIN)],
@@ -75,6 +76,23 @@ EXPLAIN VACUUM;
         vacuum_third_path: r#"VACUUM INTO 'filename';"#=vec![Type::Keyword(Keyword::VACUUM)],
         vacuum_full_path: r#"VACUUM schema_name INTO 'filename';"#=vec![Type::Keyword(Keyword::VACUUM)]
     }
+
+    // test_group_pass_assert! {
+    //     begin_stmt,
+    //     begin: r#"BEGIN"#=vec![],
+    //     begin_transaction: r#"BEGIN TRANSACTION"#=vec![],
+    //     begin_deferred: r#"BEGIN DEFERRED"#=vec![],
+    //     begin_immediate: r#"BEGIN IMMEDIATE"#=vec![],
+    //     begin_exclusive: r#"BEGIN IMMEDIATE"#=vec![]
+    // }
+
+    // test_group_pass_assert! {
+    //     commit_stmt,
+    // }
+
+    // test_group_pass_assert! {
+    //     rollback_stmt,
+    // }
 }
 
 #[cfg(test)]

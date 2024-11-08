@@ -43,3 +43,15 @@ node!(
 );
 node!(Explain,"Explain stmt, see: https://www.sqlite.org/lang_explain.html", child: Option<Box<dyn Node>>);
 node!(Vacuum,"Vacuum stmt, see: https://www.sqlite.org/lang_vacuum.html", schema_name: Option<Token>, filename: Option<Token>);
+node!(
+    Begin,
+    "Begin stmt, see: https://www.sqlite.org/syntax/begin-stmt.html",
+);
+node!(
+    Commit,
+    "Commit stmt, see: https://www.sqlite.org/syntax/commit-stmt.html",
+);
+node!(
+    Rollback,
+    "Rollback stmt, see: https://www.sqlite.org/syntax/rollback-stmt.html",
+);

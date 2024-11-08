@@ -3,7 +3,7 @@ use crate::{
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Explain, Literal, Node, Vacuum};
+use nodes::{Begin, Explain, Literal, Node, Vacuum};
 
 mod nodes;
 mod tests;
@@ -13,6 +13,13 @@ pub struct Parser<'a> {
     tokens: Vec<Token>,
     name: &'a str,
     pub errors: Vec<Error>,
+}
+
+/// wrap $expr in Some(Box::new($expr))
+macro_rules! some_box {
+    ($expr:expr) => {
+        Some(Box::new($expr))
+    };
 }
 
 /// Function naming directly corresponds to the sqlite3 documentation of sql syntax.
@@ -64,6 +71,31 @@ impl<'a> Parser<'a> {
 
     fn is(&self, t: Type) -> bool {
         self.cur().map_or(false, |tok| tok.ttype == t)
+    }
+
+    /// if cur token is t advance and return true, otherwise false
+    fn match_and_advance(&mut self, t: Type) -> bool {
+        if self.cur().is_some_and(|tok| tok.ttype == t) {
+            self.advance();
+            return true;
+        }
+        false
+    }
+
+    /// if current token in t advance, otherwise error and advance
+    fn consume_contains_one(&mut self, t: Vec<Type>) -> Option<Error> {
+        let cur = &self.cur().unwrap();
+        let mut r = None;
+        if !t.contains(&cur.ttype) {
+            r = Some(self.err(
+                "Unexpected Token",
+                &format!("Wanted any of {:?}, got {:?}", t, cur.ttype),
+                cur,
+                Rule::Syntax,
+            ))
+        }
+        self.advance();
+        r
     }
 
     /// checks if type of current token is equal to t, otherwise pushes an error, advances either way
@@ -150,13 +182,13 @@ impl<'a> Parser<'a> {
                 self.advance();
 
                 // path for EXPLAIN->QUERY->PLAN
-                if self.is(Type::Keyword(Keyword::QUERY)) {
-                    self.consume(Type::Keyword(Keyword::QUERY));
+                if self.match_and_advance(Type::Keyword(Keyword::QUERY)) {
                     self.consume(Type::Keyword(Keyword::PLAN));
                 }
+
                 // else path is EXPLAIN->*_stmt
                 e.child = self.sql_stmt();
-                Some(Box::new(e))
+                some_box!(e)
             }
             _ => self.sql_stmt(),
         }
@@ -167,6 +199,9 @@ impl<'a> Parser<'a> {
         // TODO:
         match self.cur()?.ttype {
             Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
+            // Type::Keyword(Keyword::BEGIN) => todo!("BEGIN"),
+            // Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => todo!("COMMIT"),
+            // Type::Keyword(Keyword::ROLLBACK) => todo!("ROLLBACK"),
 
             // explicitly disallowing literals at this point
             Type::String(_)
@@ -205,6 +240,15 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// https://www.sqlite.org/syntax/begin-stmt.html
+    fn begin_stmt(&mut self) -> Option<Box<dyn Node>> {
+        let begin = Begin {
+            t: self.cur()?.clone(),
+        };
+        self.consume(Type::Keyword(Keyword::BEGIN));
+        some_box!(begin)
+    }
+
     /// https://www.sqlite.org/lang_vacuum.html
     fn vacuum_stmt(&mut self) -> Option<Box<dyn Node>> {
         let mut v = Vacuum {
@@ -237,7 +281,7 @@ impl<'a> Parser<'a> {
 
         // first path
         if let Type::Semicolon = self.cur()?.ttype {
-            return Some(Box::new(v));
+            return some_box!(v);
         }
 
         // if schema_name is specified
@@ -269,7 +313,7 @@ impl<'a> Parser<'a> {
             self.advance(); // skip filename or error token
         }
 
-        Some(Box::new(v))
+        some_box!(v)
     }
 
     /// see: https://www.sqlite.org/syntax/literal-value.html
@@ -284,7 +328,7 @@ impl<'a> Parser<'a> {
             | Type::Keyword(Keyword::CURRENT_TIME)
             | Type::Keyword(Keyword::CURRENT_DATE)
             | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
-                let s: Option<Box<dyn Node>> = Some(Box::new(Literal { t: cur.clone() }));
+                let s: Option<Box<dyn Node>> = some_box!(Literal { t: cur.clone() });
                 // skipping over the current character
                 self.advance();
                 s
