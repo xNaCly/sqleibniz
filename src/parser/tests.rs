@@ -50,6 +50,19 @@ macro_rules! test_group_fail {
 #[cfg(test)]
 mod should_pass {
     test_group_pass_assert! {
+        sqleibniz_instructions,
+        expect: r"
+-- @sqleibniz::expect lets skip this error
+VACUUM 25;
+EXPLAIN VACUUM;
+        "=vec![Type::Keyword(Keyword::EXPLAIN)],
+        expect_with_semicolons_in_comment: r"
+-- @sqleibniz::expect lets skip this error;;;;;;;;
+VACUUM 25;
+EXPLAIN VACUUM;
+        "=vec![Type::Keyword(Keyword::EXPLAIN)]
+    }
+    test_group_pass_assert! {
         sql_stmt_prefix,
         explain: r#"EXPLAIN VACUUM;"#=vec![Type::Keyword(Keyword::EXPLAIN)],
         explain_query_plan: r#"EXPLAIN QUERY PLAN VACUUM;"#=vec![Type::Keyword(Keyword::EXPLAIN)]

@@ -106,7 +106,7 @@ containing a sqleibniz instruction has to be issued:
 
 ```sql
 -- will not cause a diagnostic
--- @sqleibniz::expect <explaination for instruction usage here>
+-- @sqleibniz::expect <explanation for instruction usage here>
 
 -- incorrect, because EXPLAIN wants a sql stmt
 EXPLAIN 25; 
@@ -142,8 +142,11 @@ error[Syntax]: Unexpected Literal
 => 0/1 Files verified successfully, 1 verification failed.
 ```
 
-The way `@sqleibniz::expect` works, is by not tokenizing and thus not parsing
-the statement directly after the sqleibniz instruction - a statement is
-terminated via `;`. `@sqleibniz::expect` therefore supports ignoring diagnostics
-for statements spanning either a single line or multiple lines.
+The way `@sqleibniz::expect` works, is by inserting a token with the type
+`Type::InstructionExpect`. The parser encounters this token and skips consumes
+all token until a token with the type `Type::Semicolon` is found. Therefore
+sqleibniz is not parsing the statement directly after the sqleibniz instruction
+- a statement is terminated via `;`. `@sqleibniz::expect` therefore supports
+ignoring diagnostics for statements spanning either a single line or multiple
+lines.
 

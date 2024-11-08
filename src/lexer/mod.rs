@@ -195,10 +195,7 @@ impl<'a> Lexer<'a> {
                                         instruction.split("::").last().unwrap_or_default();
                                     match function {
                                         "expect" => {
-                                            while !self.is_eof() && !self.is(';') {
-                                                // TODO: skip ; in comments
-                                                self.advance();
-                                            }
+                                            r.push(self.single(Type::InstructionExpect));
                                         }
                                         _ => {
                                             let mut err = self.err(

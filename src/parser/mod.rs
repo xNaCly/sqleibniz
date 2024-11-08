@@ -132,19 +132,29 @@ impl<'a> Parser<'a> {
 
     fn sql_stmt_prefix(&mut self) -> Option<Box<dyn Node>> {
         match self.cur()?.ttype {
+            // skip all token until the next statement ends
+            Type::InstructionExpect => {
+                while !self.is(Type::Semicolon) {
+                    self.advance();
+                }
+                // skip ';'
+                self.advance();
+                self.sql_stmt_prefix()
+            }
             Type::Keyword(Keyword::EXPLAIN) => {
                 let mut e = Explain {
                     t: self.cur()?.clone(),
                     child: None,
                 };
-                self.advance(); // skip EXPLAIN
+                // skip EXPLAIN
+                self.advance();
 
                 // path for EXPLAIN->QUERY->PLAN
                 if self.is(Type::Keyword(Keyword::QUERY)) {
                     self.consume(Type::Keyword(Keyword::QUERY));
                     self.consume(Type::Keyword(Keyword::PLAN));
-                } // else path is EXPLAIN->*_stmt
-
+                }
+                // else path is EXPLAIN->*_stmt
                 e.child = self.sql_stmt();
                 Some(Box::new(e))
             }
