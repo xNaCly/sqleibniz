@@ -107,12 +107,16 @@ containing a sqleibniz instruction has to be issued:
 ```sql
 -- will not cause a diagnostic
 -- @sqleibniz::expect <explanation for instruction usage here>
-
 -- incorrect, because EXPLAIN wants a sql stmt
 EXPLAIN 25; 
 
+-- will not cause a diagnostic
+-- @sqleibniz::expect <explanation for instruction usage here>
+-- incorrect, because 'unknown_table' does not exist
+SELECT * FROM unknown_table;
+
 -- will cause a diagnostic
--- incorrect, because EXPLAIN wants a sql stmt
+-- incorrect, because EXPLAIN wants a sql stmt, not a literal
 EXPLAIN QUERY PLAN 25; 
 ```
 
@@ -124,29 +128,31 @@ warn: Ignoring the following diagnostics, according to 'leibniz.toml':
  -> NoStatements
  -> Unimplemented
  -> BadSqleibnizInstruction
-============================== ./test.sql ==============================
+======================== ./tests/sqleibniz.sql =========================
 error[Syntax]: Unexpected Literal
- -> /home/magr6/programming/sqleibniz/test.sql:9:20
- 07 | -- will cause a diagnostic
- 08 | -- incorrect, because EXPLAIN wants a sql stmt
- 09 | EXPLAIN QUERY PLAN 25; 
+ -> /home/magr6/programming/sqleibniz/tests/sqleibniz.sql:12:20
+ 10 | -- will cause a diagnostic
+ 11 | -- incorrect, because EXPLAIN wants a sql stmt, not a literal
+ 12 | EXPLAIN QUERY PLAN 25; 
     |                    ^^ error occurs here.
     |
-    ~ note: No top level literals, such as Number(25.0) allowed.
+    ~ note: Literal Number(25.0) disallowed at this point.
   * Syntax: The source file contains a structure with incorrect syntax
+
+ docs: https://www.sqlite.org/syntax/sql-stmt.html
 =============================== Summary ================================
-[-] ./test.sql:
+[-] ./tests/sqleibniz.sql:
     1 Error(s) detected
     0 Error(s) ignored
 
 => 0/1 Files verified successfully, 1 verification failed.
 ```
 
-The way `@sqleibniz::expect` works, is by inserting a token with the type
-`Type::InstructionExpect`. The parser encounters this token and skips consumes
-all token until a token with the type `Type::Semicolon` is found. Therefore
-sqleibniz is not parsing the statement directly after the sqleibniz instruction
-- a statement is terminated via `;`. `@sqleibniz::expect` therefore supports
-ignoring diagnostics for statements spanning either a single line or multiple
-lines.
+`@sqleibniz::expect` is implemented by inserting a token with the type
+`Type::InstructionExpect`. The parser encounters this token and consumes all
+token until a token with the type `Type::Semicolon` is found. Thus sqleibniz is
+skipping the analysis of the statement directly after the sqleibniz
+instruction. A statement is terminated via `;`. `@sqleibniz::expect` therefore
+supports ignoring diagnostics for statements spanning either a single line or
+multiple lines.
 

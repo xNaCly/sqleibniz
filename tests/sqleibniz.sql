@@ -1,7 +1,12 @@
--- @sqleibniz::expect ignore this error because i feel like it:
--- i can write whatever i want here, maybe some shitty (microsoft 🤮) sql
--- server syntax? 
-VACUUM 25;
+-- will not cause a diagnostic
+-- @sqleibniz::expect <explanation for instruction usage here>
+-- incorrect, because EXPLAIN wants a sql stmt
+EXPLAIN 25; 
 
--- this is normal sql again:
-EXPLAIN QUERY PLAN VACUUM;
+-- will not cause a diagnostic
+-- @sqleibniz::expect <explanation for instruction usage here>
+SELECT * FROM deleted_table;
+
+-- will cause a diagnostic
+-- incorrect, because EXPLAIN wants a sql stmt, not a literal
+EXPLAIN QUERY PLAN 25; 
