@@ -111,7 +111,7 @@ impl<'a> Lexer<'a> {
                     line_start,
                     Rule::UnterminatedString,
                 );
-                err.end = end + 1;
+                err.end += 1;
                 err.line = line;
                 err.doc_url =
                     Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");
@@ -221,7 +221,7 @@ impl<'a> Lexer<'a> {
                     Ok(str_tok) => r.push(str_tok),
                     Err(err) => self.errors.push(err),
                 },
-                '*' => r.push(self.single(Type::Asteriks)),
+                '*' => r.push(self.single(Type::Asterisk)),
                 ';' => r.push(self.single(Type::Semicolon)),
                 ',' => r.push(self.single(Type::Comma)),
                 '%' => r.push(self.single(Type::Percent)),

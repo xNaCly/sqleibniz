@@ -87,7 +87,7 @@ pub enum Type {
     Param(usize),
 
     Dot,
-    Asteriks,
+    Asterisk,
     Semicolon,
     Percent,
     Comma,

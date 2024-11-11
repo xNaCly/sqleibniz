@@ -59,7 +59,7 @@ mod should_pass {
         // d is needed, because the lexer interprets . as a float start if the next character is
         // not an identifier, if so, it detects Type::Dot
         dot: ".d"=vec![Type::Dot, Type::Ident(String::from("d"))],
-        star: "*"=vec![Type::Asteriks],
+        star: "*"=vec![Type::Asterisk],
         semicolon: ";"=vec![Type::Semicolon],
         comma: ","=vec![Type::Comma],
         percent: "%"=vec![Type::Percent],
