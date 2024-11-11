@@ -1,4 +1,4 @@
-use crate::types::Token;
+use crate::types::{Token, Type};
 
 /// Generates a Node from the given input:
 ///

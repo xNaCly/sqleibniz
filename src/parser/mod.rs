@@ -73,29 +73,41 @@ impl<'a> Parser<'a> {
         self.cur().map_or(false, |tok| tok.ttype == t)
     }
 
-    /// if cur token is t advance and return true, otherwise false
-    fn match_and_advance(&mut self, t: Type) -> bool {
-        if self.cur().is_some_and(|tok| tok.ttype == t) {
+    fn skip_until_semicolon(&mut self) {
+        while !self.is_eof() && !self.is(Type::Semicolon) {
+            self.advance();
+        }
+    }
+
+    /// if current token in t advance, otherwise return false; finally advance
+    fn matches_any(&mut self, t: Vec<Type>) -> Option<Token> {
+        if let Some(cur) = &self.cur() {
+            if t.contains(&cur.ttype) {
+                let t = (*cur).clone();
+                self.advance();
+                return Some(t);
+            }
+            return None;
+        }
+        None
+    }
+
+    /// if current token in t advance, otherwise return false and push error; finally advance
+    fn matches_one(&mut self, t: Vec<Type>) -> bool {
+        if let Some(cur) = &self.cur() {
+            if !t.contains(&cur.ttype) {
+                self.errors.push(self.err(
+                    "Unexpected Token",
+                    &format!("Wanted any of {:?}, got {:?}", t, cur.ttype),
+                    cur,
+                    Rule::Syntax,
+                ));
+                return false;
+            }
             self.advance();
             return true;
         }
         false
-    }
-
-    /// if current token in t advance, otherwise error and advance
-    fn consume_contains_one(&mut self, t: Vec<Type>) -> Option<Error> {
-        let cur = &self.cur().unwrap();
-        let mut r = None;
-        if !t.contains(&cur.ttype) {
-            r = Some(self.err(
-                "Unexpected Token",
-                &format!("Wanted any of {:?}, got {:?}", t, cur.ttype),
-                cur,
-                Rule::Syntax,
-            ))
-        }
-        self.advance();
-        r
     }
 
     /// checks if type of current token is equal to t, otherwise pushes an error, advances either way
@@ -182,7 +194,8 @@ impl<'a> Parser<'a> {
                 self.advance();
 
                 // path for EXPLAIN->QUERY->PLAN
-                if self.match_and_advance(Type::Keyword(Keyword::QUERY)) {
+                if self.is(Type::Keyword(Keyword::QUERY)) {
+                    self.advance();
                     self.consume(Type::Keyword(Keyword::PLAN));
                 }
 
@@ -196,10 +209,9 @@ impl<'a> Parser<'a> {
 
     /// see: https://www.sqlite.org/syntax/sql-stmt.html
     fn sql_stmt(&mut self) -> Option<Box<dyn Node>> {
-        // TODO:
         match self.cur()?.ttype {
             Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
-            // Type::Keyword(Keyword::BEGIN) => todo!("BEGIN"),
+            Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
             // Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => todo!("COMMIT"),
             // Type::Keyword(Keyword::ROLLBACK) => todo!("ROLLBACK"),
 
@@ -242,11 +254,52 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/syntax/begin-stmt.html
     fn begin_stmt(&mut self) -> Option<Box<dyn Node>> {
-        let begin = Begin {
+        let begin: Begin = Begin {
             t: self.cur()?.clone(),
         };
-        self.consume(Type::Keyword(Keyword::BEGIN));
-        some_box!(begin)
+
+        // skip BEGIN
+        self.advance();
+
+        // skip modifiers
+        match self.cur()?.ttype {
+            // only BEGIN
+            Type::Semicolon => return some_box!(begin),
+            Type::Keyword(Keyword::DEFERRED)
+            | Type::Keyword(Keyword::IMMEDIATE)
+            | Type::Keyword(Keyword::EXCLUSIVE) => self.advance(),
+            _ => {}
+        }
+
+        match self.cur()?.ttype {
+            Type::Semicolon => return some_box!(begin),
+            // ending
+            Type::Keyword(Keyword::TRANSACTION) => self.advance(),
+            Type::Keyword(Keyword::DEFERRED)
+            | Type::Keyword(Keyword::IMMEDIATE)
+            | Type::Keyword(Keyword::EXCLUSIVE) => {
+                self.errors.push(self.err(
+                    "Unexpected Token",
+                    "BEGIN does not allow multiple transaction behaviour modifiers",
+                    self.cur()?,
+                    Rule::Syntax,
+                ));
+                self.skip_until_semicolon();
+            }
+            _ => {
+                self.errors.push(self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "Wanted any of TRANSACTION, DEFERRED, IMMEDIATE or EXCLUSIVE before this point, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                ));
+            }
+        }
+
+        return some_box!(begin);
     }
 
     /// https://www.sqlite.org/lang_vacuum.html

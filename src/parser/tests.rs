@@ -77,14 +77,14 @@ EXPLAIN VACUUM;
         vacuum_full_path: r#"VACUUM schema_name INTO 'filename';"#=vec![Type::Keyword(Keyword::VACUUM)]
     }
 
-    // test_group_pass_assert! {
-    //     begin_stmt,
-    //     begin: r#"BEGIN"#=vec![],
-    //     begin_transaction: r#"BEGIN TRANSACTION"#=vec![],
-    //     begin_deferred: r#"BEGIN DEFERRED"#=vec![],
-    //     begin_immediate: r#"BEGIN IMMEDIATE"#=vec![],
-    //     begin_exclusive: r#"BEGIN IMMEDIATE"#=vec![]
-    // }
+    test_group_pass_assert! {
+        begin_stmt,
+        begin: r#"BEGIN;"#=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_transaction: r#"BEGIN TRANSACTION;"#=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_deferred: r#"BEGIN DEFERRED;"#=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_immediate: r#"BEGIN IMMEDIATE;"#=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_exclusive: r#"BEGIN EXCLUSIVE;"#=vec![Type::Keyword(Keyword::BEGIN)]
+    }
 
     // test_group_pass_assert! {
     //     commit_stmt,
@@ -122,5 +122,17 @@ mod should_fail {
         vacuum_invalid_schema: r#"VACUUM 1;"#,
         vacuum_invalid_filename: r#"VACUUM INTO 5;"#,
         vacuum_invalid_combined: r#"VACUUM 5 INTO 5;"#
+    }
+
+    test_group_fail! {
+            sql_begin,
+            begin_no_semicolon: r#"BEGIN"#,
+            begin_transaction_no_semicolon: r#"BEGIN TRANSACTION"#,
+            begin_deferred_no_semicolon: r#"BEGIN DEFERRED"#,
+            begin_immediate_no_semicolon: r#"BEGIN IMMEDIATE"#,
+            begin_exclusive_no_semicolon: r#"BEGIN EXCLUSIVE"#,
+
+            begin_transaction_with_literal: r#"BEGIN TRANSACTION 25;"#,
+            begin_too_many_modifiers: r#"BEGIN DEFERRED IMMEDIATE EXCLUSIVE EXCLUSIVE;"#
     }
 }
