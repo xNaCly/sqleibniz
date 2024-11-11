@@ -240,13 +240,13 @@ impl<'a> Parser<'a> {
                 self.errors.push(self.err(
                     "Unimplemented",
                     &format!(
-                        "sqleibniz can not yet analyse the token {:?}",
+                        "sqleibniz can not yet analyse the token {:?}, skipping statement",
                         self.cur()?.ttype
                     ),
                     self.cur()?,
                     Rule::Unimplemented,
                 ));
-                self.advance();
+                self.skip_until_semicolon();
                 None
             }
         }
