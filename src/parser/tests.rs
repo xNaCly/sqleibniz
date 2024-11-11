@@ -97,6 +97,17 @@ EXPLAIN VACUUM;
         commit_transaction:r"COMMIT TRANSACTION;"=vec![Type::Keyword(Keyword::COMMIT)],
         end_transaction:   r"END TRANSACTION;"=vec![Type::Keyword(Keyword::END)]
     }
+
+    test_group_pass_assert! {
+        rollback_stmt,
+
+        // rollback:r"ROLLBACK;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        // rollback_to_save_point:r"ROLLBACK TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        // rollback_to_savepoint_save_point:r"ROLLBACK TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        // rollback_transaction:r"ROLLBACK TRANSACTION;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        // rollback_transaction_to_save_point:r"ROLLBACK TRANSACTION TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        // rollback_transaction_to_savepoint_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)]
+    }
 }
 
 #[cfg(test)]
@@ -153,5 +164,16 @@ mod should_fail {
         end_with_literal:               r"END 12;",
         commit_transaction_with_literal:r"COMMIT TRANSACTION x'81938912';",
         end_transaction_with_literal:   r"END TRANSACTION 'kadl';"
+    }
+
+    test_group_fail! {
+        rollback_stmt,
+
+        rollback_no_semicolon:r"ROLLBACK",
+        rollback_to_save_point_no_semicolon:r"ROLLBACK TO save_point",
+        rollback_to_savepoint_save_point_no_semicolon:r"ROLLBACK TO SAVEPOINT save_point",
+        rollback_transaction_no_semicolon:r"ROLLBACK TRANSACTION",
+        rollback_transaction_to_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO save_point",
+        rollback_transaction_to_savepoint_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point"
     }
 }

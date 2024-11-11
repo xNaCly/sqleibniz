@@ -213,7 +213,7 @@ impl<'a> Parser<'a> {
             Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
             Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
             Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
-            // Type::Keyword(Keyword::ROLLBACK) => todo!("ROLLBACK"),
+            Type::Keyword(Keyword::ROLLBACK) => self.rollback_stmt(),
 
             // explicitly disallowing literals at this point: results in clearer and more
             // understandable error messages
@@ -250,6 +250,12 @@ impl<'a> Parser<'a> {
                 None
             }
         }
+    }
+
+    /// https://www.sqlite.org/syntax/rollback-stmt.html
+    fn rollback_stmt(&mut self) -> Option<Box<dyn Node>> {
+        // TODO: implement this
+        None
     }
 
     /// https://www.sqlite.org/syntax/commit-stmt.html
