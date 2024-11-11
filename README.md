@@ -130,7 +130,7 @@ warn: Ignoring the following diagnostics, according to 'leibniz.toml':
  -> BadSqleibnizInstruction
 ======================== ./tests/sqleibniz.sql =========================
 error[Syntax]: Unexpected Literal
- -> /home/magr6/programming/sqleibniz/tests/sqleibniz.sql:12:20
+ -> /home/teo/programming/sqleibniz/tests/sqleibniz.sql:12:20
  10 | -- will cause a diagnostic
  11 | -- incorrect, because EXPLAIN wants a sql stmt, not a literal
  12 | EXPLAIN QUERY PLAN 25; 

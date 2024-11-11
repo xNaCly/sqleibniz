@@ -11,6 +11,7 @@ VACUUM INTO 'filename';
 VACUUM schema_name INTO 'filename';
 
 -- https://www.sqlite.org/lang_transaction.html
+
 -- https://www.sqlite.org/syntax/begin-stmt.html
 BEGIN;
 BEGIN TRANSACTION;
@@ -20,3 +21,9 @@ BEGIN EXCLUSIVE;
 BEGIN DEFERRED TRANSACTION;
 BEGIN IMMEDIATE TRANSACTION;
 BEGIN EXCLUSIVE TRANSACTION;
+
+-- https://www.sqlite.org/syntax/commit-stmt.html
+COMMIT;
+END;
+COMMIT TRANSACTION;
+END TRANSACTION;

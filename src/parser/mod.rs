@@ -3,7 +3,7 @@ use crate::{
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Begin, Explain, Literal, Node, Vacuum};
+use nodes::{Begin, Commit, Explain, Literal, Node, Vacuum};
 
 mod nodes;
 mod tests;
@@ -212,10 +212,11 @@ impl<'a> Parser<'a> {
         match self.cur()?.ttype {
             Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
             Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
-            // Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => todo!("COMMIT"),
+            Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
             // Type::Keyword(Keyword::ROLLBACK) => todo!("ROLLBACK"),
 
-            // explicitly disallowing literals at this point
+            // explicitly disallowing literals at this point: results in clearer and more
+            // understandable error messages
             Type::String(_)
             | Type::Number(_)
             | Type::Blob(_)
@@ -224,15 +225,14 @@ impl<'a> Parser<'a> {
             | Type::Keyword(Keyword::CURRENT_TIME)
             | Type::Keyword(Keyword::CURRENT_DATE)
             | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
-                self.errors.push(self.err(
+                let mut err = self.err(
                     "Unexpected Literal",
-                    &format!(
-                        "No top level literals, such as {:?} allowed.",
-                        self.cur()?.ttype
-                    ),
+                    &format!("Literal {:?} disallowed at this point.", self.cur()?.ttype),
                     self.cur()?,
                     Rule::Syntax,
-                ));
+                );
+                err.doc_url = Some("https://www.sqlite.org/syntax/sql-stmt.html");
+                self.errors.push(err);
                 self.advance();
                 None
             }
@@ -250,6 +250,52 @@ impl<'a> Parser<'a> {
                 None
             }
         }
+    }
+
+    /// https://www.sqlite.org/syntax/commit-stmt.html
+    fn commit_stmt(&mut self) -> Option<Box<dyn Node>> {
+        let commit: Option<Box<dyn Node>> = some_box!(Commit {
+            t: self.cur()?.clone(),
+        });
+
+        // skip either COMMIT or END
+        self.advance();
+
+        match self.cur()?.ttype {
+            // expected end 1
+            Type::Semicolon => (),
+            // expected end 2, optional
+            Type::Keyword(Keyword::TRANSACTION) => self.advance(),
+            _ => {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "Wanted Keyword(Keyword::TRANSACTION) or Semicolon, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                self.errors.push(err);
+                self.advance();
+            }
+        }
+
+        if !self.is(Type::Semicolon) {
+            self.errors.push(self.err(
+                "Unexpected Token",
+                &format!(
+                    "Wanted no tokens except Semicolon at this point, got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            ));
+            self.advance();
+        }
+
+        commit
     }
 
     /// https://www.sqlite.org/syntax/begin-stmt.html
@@ -278,16 +324,20 @@ impl<'a> Parser<'a> {
             Type::Keyword(Keyword::DEFERRED)
             | Type::Keyword(Keyword::IMMEDIATE)
             | Type::Keyword(Keyword::EXCLUSIVE) => {
-                self.errors.push(self.err(
+                let mut err = self.err(
                     "Unexpected Token",
                     "BEGIN does not allow multiple transaction behaviour modifiers",
                     self.cur()?,
                     Rule::Syntax,
-                ));
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                self.errors.push(err);
+                // TODO: think about if this is smart at this point, skipping to the next ; could
+                // be skipping too many tokens
                 self.skip_until_semicolon();
             }
             _ => {
-                self.errors.push(self.err(
+                let mut err = self.err(
                     "Unexpected Token",
                     &format!(
                         "Wanted any of TRANSACTION, DEFERRED, IMMEDIATE or EXCLUSIVE before this point, got {:?}",
@@ -295,7 +345,9 @@ impl<'a> Parser<'a> {
                     ),
                     self.cur()?,
                     Rule::Syntax,
-                ));
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                self.errors.push(err);
             }
         }
 

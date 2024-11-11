@@ -83,16 +83,20 @@ EXPLAIN VACUUM;
         begin_transaction: r#"BEGIN TRANSACTION;"#=vec![Type::Keyword(Keyword::BEGIN)],
         begin_deferred: r#"BEGIN DEFERRED;"#=vec![Type::Keyword(Keyword::BEGIN)],
         begin_immediate: r#"BEGIN IMMEDIATE;"#=vec![Type::Keyword(Keyword::BEGIN)],
-        begin_exclusive: r#"BEGIN EXCLUSIVE;"#=vec![Type::Keyword(Keyword::BEGIN)]
+        begin_exclusive: r#"BEGIN EXCLUSIVE;"#=vec![Type::Keyword(Keyword::BEGIN)],
+
+        begin_deferred_transaction: r"BEGIN DEFERRED TRANSACTION;"=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_immediate_transaction: r"BEGIN IMMEDIATE TRANSACTION;"=vec![Type::Keyword(Keyword::BEGIN)],
+        begin_exclusive_transaction: r"BEGIN EXCLUSIVE TRANSACTION;"=vec![Type::Keyword(Keyword::BEGIN)]
     }
 
-    // test_group_pass_assert! {
-    //     commit_stmt,
-    // }
-
-    // test_group_pass_assert! {
-    //     rollback_stmt,
-    // }
+    test_group_pass_assert! {
+        commit_stmt,
+        commit:            r"COMMIT;"=vec![Type::Keyword(Keyword::COMMIT)],
+        end:               r"END;"=vec![Type::Keyword(Keyword::END)],
+        commit_transaction:r"COMMIT TRANSACTION;"=vec![Type::Keyword(Keyword::COMMIT)],
+        end_transaction:   r"END TRANSACTION;"=vec![Type::Keyword(Keyword::END)]
+    }
 }
 
 #[cfg(test)]
@@ -125,15 +129,29 @@ mod should_fail {
     }
 
     test_group_fail! {
-            sql_begin,
-            begin_no_semicolon: r#"BEGIN"#,
-            begin_transaction_no_semicolon: r#"BEGIN TRANSACTION"#,
-            begin_deferred_no_semicolon: r#"BEGIN DEFERRED"#,
-            begin_immediate_no_semicolon: r#"BEGIN IMMEDIATE"#,
-            begin_exclusive_no_semicolon: r#"BEGIN EXCLUSIVE"#,
+        sql_begin,
+        begin_no_semicolon: r#"BEGIN"#,
+        begin_transaction_no_semicolon: r#"BEGIN TRANSACTION"#,
+        begin_deferred_no_semicolon: r#"BEGIN DEFERRED"#,
+        begin_immediate_no_semicolon: r#"BEGIN IMMEDIATE"#,
+        begin_exclusive_no_semicolon: r#"BEGIN EXCLUSIVE"#,
 
-            begin_transaction_with_literal: r#"BEGIN TRANSACTION 25;"#,
-            begin_transaction_with_other_keyword: r#"BEGIN TRANSACTION AS;"#,
-            begin_too_many_modifiers: r#"BEGIN DEFERRED IMMEDIATE EXCLUSIVE EXCLUSIVE;"#
+        begin_transaction_with_literal: r#"BEGIN TRANSACTION 25;"#,
+        begin_transaction_with_other_keyword: r#"BEGIN TRANSACTION AS;"#,
+        begin_too_many_modifiers: r#"BEGIN DEFERRED IMMEDIATE EXCLUSIVE EXCLUSIVE;"#
+
+    }
+
+    test_group_fail! {
+        commit_stmt,
+        commit_no_semicolon:            r"COMMIT",
+        end_no_semicolon:               r"END",
+        commit_transaction_no_semicolon:r"COMMIT TRANSACTION",
+        end_transaction_no_semicolon:   r"END TRANSACTION",
+
+        commit_with_literal:            r"COMMIT 25;",
+        end_with_literal:               r"END 12;",
+        commit_transaction_with_literal:r"COMMIT TRANSACTION x'81938912';",
+        end_transaction_with_literal:   r"END TRANSACTION 'kadl';"
     }
 }
