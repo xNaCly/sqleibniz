@@ -299,6 +299,19 @@ impl<'a> Parser<'a> {
             }
         }
 
+        if !self.is(Type::Semicolon) {
+            self.errors.push(self.err(
+                "Unexpected Token",
+                &format!(
+                    "Wanted no tokens except Semicolon at this point, got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            ));
+            self.advance();
+        }
+
         return some_box!(begin);
     }
 

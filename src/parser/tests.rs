@@ -133,6 +133,7 @@ mod should_fail {
             begin_exclusive_no_semicolon: r#"BEGIN EXCLUSIVE"#,
 
             begin_transaction_with_literal: r#"BEGIN TRANSACTION 25;"#,
+            begin_transaction_with_other_keyword: r#"BEGIN TRANSACTION AS;"#,
             begin_too_many_modifiers: r#"BEGIN DEFERRED IMMEDIATE EXCLUSIVE EXCLUSIVE;"#
     }
 }
