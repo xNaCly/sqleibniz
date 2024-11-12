@@ -3,7 +3,7 @@ use crate::{
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Begin, Commit, Explain, Literal, Node, Vacuum};
+use nodes::{Begin, Commit, Explain, Literal, Node, Rollback, Vacuum};
 
 mod nodes;
 mod tests;
@@ -254,8 +254,80 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/syntax/rollback-stmt.html
     fn rollback_stmt(&mut self) -> Option<Box<dyn Node>> {
-        // TODO: implement this
-        None
+        let mut rollback = Rollback {
+            t: self.cur()?.clone(),
+            save_point: None,
+        };
+        self.advance();
+
+        match self.cur()?.ttype {
+            Type::Keyword(Keyword::TRANSACTION) | Type::Keyword(Keyword::TO) | Type::Semicolon => {}
+            _ => {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "ROLLBACK requires TRANSACTION, TO or to end at this point, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                self.errors.push(err);
+            }
+        }
+
+        // optional TRANSACTION
+        if self.is(Type::Keyword(Keyword::TRANSACTION)) {
+            self.advance();
+        }
+
+        // optional TO
+        if self.is(Type::Keyword(Keyword::TO)) {
+            self.advance();
+
+            // optional SAVEPOINT
+            if self.is(Type::Keyword(Keyword::SAVEPOINT)) {
+                self.advance();
+            }
+
+            match self.cur()?.ttype {
+                Type::Keyword(Keyword::SAVEPOINT) | Type::Ident(_) | Type::Semicolon => {}
+                _ => {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "ROLLBACK requires SAVEPOINT, Ident or to end at this point, got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                    self.errors.push(err);
+                    self.advance();
+                }
+            }
+
+            if let Type::Ident(str) = &self.cur()?.ttype {
+                rollback.save_point = Some(String::from(str));
+            } else {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "ROLLBACK wants Ident as <savepoint-name>, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+                self.errors.push(err);
+            }
+            self.advance();
+        }
+
+        some_box!(rollback)
     }
 
     /// https://www.sqlite.org/syntax/commit-stmt.html

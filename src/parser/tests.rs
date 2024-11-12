@@ -101,12 +101,12 @@ EXPLAIN VACUUM;
     test_group_pass_assert! {
         rollback_stmt,
 
-        // rollback:r"ROLLBACK;"=vec![Type::Keyword(Keyword::ROLLBACK)],
-        // rollback_to_save_point:r"ROLLBACK TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
-        // rollback_to_savepoint_save_point:r"ROLLBACK TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
-        // rollback_transaction:r"ROLLBACK TRANSACTION;"=vec![Type::Keyword(Keyword::ROLLBACK)],
-        // rollback_transaction_to_save_point:r"ROLLBACK TRANSACTION TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
-        // rollback_transaction_to_savepoint_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)]
+        rollback:r"ROLLBACK;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        rollback_to_save_point:r"ROLLBACK TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        rollback_to_savepoint_save_point:r"ROLLBACK TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        rollback_transaction:r"ROLLBACK TRANSACTION;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        rollback_transaction_to_save_point:r"ROLLBACK TRANSACTION TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
+        rollback_transaction_to_savepoint_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)]
     }
 }
 
@@ -174,6 +174,8 @@ mod should_fail {
         rollback_to_savepoint_save_point_no_semicolon:r"ROLLBACK TO SAVEPOINT save_point",
         rollback_transaction_no_semicolon:r"ROLLBACK TRANSACTION",
         rollback_transaction_to_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO save_point",
-        rollback_transaction_to_savepoint_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point"
+        rollback_transaction_to_savepoint_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point",
+
+        rollback_transaction_to_literal_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT 'hello';"
     }
 }

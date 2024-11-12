@@ -54,4 +54,5 @@ node!(
 node!(
     Rollback,
     "Rollback stmt, see: https://www.sqlite.org/syntax/rollback-stmt.html",
+    save_point: Option<String>
 );
