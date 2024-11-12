@@ -10,8 +10,8 @@ VACUUM schema_name;
 VACUUM INTO 'filename';
 VACUUM schema_name INTO 'filename';
 
--- https://www.sqlite.org/lang_transaction.html
 
+/* ---- https://www.sqlite.org/lang_transaction.html ---- */
 -- https://www.sqlite.org/syntax/begin-stmt.html
 BEGIN;
 BEGIN TRANSACTION;
@@ -28,9 +28,11 @@ END;
 COMMIT TRANSACTION;
 END TRANSACTION;
 
+-- https://www.sqlite.org/syntax/rollback-stmt.html
 ROLLBACK;
 ROLLBACK TO save_point;
 ROLLBACK TO SAVEPOINT save_point;
 ROLLBACK TRANSACTION;
 ROLLBACK TRANSACTION TO save_point;
-ROLLBACK TRANSACTION TO SAVEPOINT save_point;
+ROLLBACK TRANSACTION TO SAVEPOINT 'huh';
+/* ------------------------------------------------------ */

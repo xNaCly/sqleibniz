@@ -2,32 +2,71 @@
 
 A static analysis tool for sql, check syntax errors as well as semantic errors on snippets or full schemata
 
-
 > [!WARNING]  
 > Sqleibniz is in early stages of development, please keep this in mind before
 > creating issues - contributions are always welcome 💗
 
 ## Features
 
-- static sql analysis:
-  - is the syntax correct? - sqleibniz aims to implement the syntax [sqlite understands](https://www.sqlite.org/lang.html)
-  - do the used tables and columns exist?
-  - do the used functions exist?
-  - are the types of all operations compatible and produce the expected result?
-- runtime sql analysis
-  - executing input via embedded memory sqlite
-  - automatically examining the resulting database and generating a report containing:
-    - created tables, their columns with types and the amount of rows in each table
-    - a list of statements that failed and the returned error
-- very pretty errors :^)
-  - source location
-  - sql syntax highlighting
-  - hints for possible fixes and
-  - link to the corresponding sqlite page
+Sqleibniz is a command line tool to analyse sql statements by checking for their static and
+dynamic correctness. See below for a list of currently implemented features.
+
+### Supported features
+
+- [ ] static analysis (syntax and semantic analysis)
+  - [x] syntax analysis - sqleibniz aims to implement the syntax [sqlite understands](https://www.sqlite.org/lang.html)
+  - [ ] warn for sqlites [quirks](https://www.sqlite.org/quirks.html)
+  - [ ] do the used tables exist / were they created beforehand
+  - [ ] do the used columns exist / were they created beforehand
+  - [ ] do the used functions exist / were they created beforehand
+  - [ ] are all used types compatible
+- [ ] dynamic analysis (runtime analysis via embedded sqlite)
+  - [ ] assertions via `@sqleibniz::assert`
+  - [ ] were all tables and their columns created correctly (with correct storage classes)
+  - [ ] were all stmts executed successfully
+- [ ] pretty errors
+  - [x] faulty code display with line numbers
+  - [x] link to sqlite documentation for each diagnostic
+  - [x] ability to omit specific errors depending on their group (Rule)
+  - [x] highlighting the error in the faulty code snippet
+  - [x] explanation why the specific error was ommitted based on its Rule
+  - [ ] possible fix suggestions
+
+### Supported sql statements
+
+| done | `sqlite`-syntax name        | sql example                     | non-standard sql |
+| ---- | --------------------------- | ------------------------------- | ---------------- |
+| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`           |                  |
+|      | `alter-table-stmt`          |                                 |                  |
+|      | `analyze-stmt`              |                                 |                  |
+|      | `attach-stmt`               |                                 |                  |
+| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`   |                  |
+| ✅   | `commit-stmt`               | `END TRANSACTION;`              |                  |
+|      | `create-index-stmt`         |                                 |                  |
+|      | `create-table-stmt`         |                                 |                  |
+|      | `create-trigger-stmt`       |                                 |                  |
+|      | `create-view-stmt`          |                                 |                  |
+|      | `create-virtual-table-stmt` |                                 |                  |
+|      | `delete-stmt`               |                                 |                  |
+|      | `delete-stmt-limited`       |                                 |                  |
+|      | `detach-stmt`               |                                 |                  |
+|      | `drop-index-stmt`           |                                 |                  |
+|      | `drop-table-stmt`           |                                 |                  |
+|      | `drop-view-stmt`            |                                 |                  |
+|      | `insert-stmt`               |                                 |                  |
+|      | `pragma-stmt`               |                                 | sqlite specific  |
+|      | `reindex-stmt`              |                                 |                  |
+|      | `release-stmt`              |                                 |                  |
+| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;` |                  |
+|      | `savepoint-stmt`            |                                 |                  |
+|      | `select-stmt`               |                                 |                  |
+|      | `update-stmt`               |                                 |                  |
+|      | `update-stmt-limited`       |                                 |                  |
+| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`     |                  |
 
 ## Installation
 
-### cargo 
+### cargo
 
 ```
 cargo install --git https://github.com/xnacly/sqleibniz
@@ -73,8 +112,8 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 ```toml
 # this is an example file, consult: https://toml.io/en/ and src/rules.rs for
 # documentation
-[disabled] 
-    rules = [ 
+[disabled]
+    rules = [
         # by default, sqleibniz specific errors are disabled:
         "NoContent", # source file is empty
         "NoStatements", # source file contains no statements
@@ -90,7 +129,6 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
         # "Semicolon", # a semicolon is missing
     ]
 ```
-
 
 ### sqleibniz instructions
 
@@ -108,7 +146,7 @@ containing a sqleibniz instruction has to be issued:
 -- will not cause a diagnostic
 -- @sqleibniz::expect <explanation for instruction usage here>
 -- incorrect, because EXPLAIN wants a sql stmt
-EXPLAIN 25; 
+EXPLAIN 25;
 
 -- will not cause a diagnostic
 -- @sqleibniz::expect <explanation for instruction usage here>
@@ -117,7 +155,7 @@ SELECT * FROM unknown_table;
 
 -- will cause a diagnostic
 -- incorrect, because EXPLAIN wants a sql stmt, not a literal
-EXPLAIN QUERY PLAN 25; 
+EXPLAIN QUERY PLAN 25;
 ```
 
 Passing the above file to `sqleibniz`:
@@ -133,7 +171,7 @@ error[Syntax]: Unexpected Literal
  -> /home/teo/programming/sqleibniz/tests/sqleibniz.sql:12:20
  10 | -- will cause a diagnostic
  11 | -- incorrect, because EXPLAIN wants a sql stmt, not a literal
- 12 | EXPLAIN QUERY PLAN 25; 
+ 12 | EXPLAIN QUERY PLAN 25;
     |                    ^^ error occurs here.
     |
     ~ note: Literal Number(25.0) disallowed at this point.
@@ -155,4 +193,3 @@ skipping the analysis of the statement directly after the sqleibniz
 instruction. A statement is terminated via `;`. `@sqleibniz::expect` therefore
 supports ignoring diagnostics for statements spanning either a single line or
 multiple lines.
-
