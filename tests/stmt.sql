@@ -1,3 +1,4 @@
+-- vim: filetype=sql
 /* stmt.sql displays the current progress of sqleibniz by highlighting all currently available statements. */
 
 -- https://www.sqlite.org/lang_explain.html
