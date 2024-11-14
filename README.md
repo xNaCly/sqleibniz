@@ -1,10 +1,11 @@
 # sqleibniz
 
-A static analysis tool for sql, check syntax errors as well as semantic errors on snippets or full schemata
+LSP and analysis cli for sql. Check for valid syntax,
+semantics and perform dynamic analysis.
 
 > [!WARNING]  
 > Sqleibniz is in early stages of development, please keep this in mind before
-> creating issues - contributions are always welcome 💗
+> creating issues. Contributions are always welcome 💗
 
 ## Features
 
@@ -31,6 +32,10 @@ dynamic correctness. See below for a list of currently implemented features.
   - [x] highlighting the error in the faulty code snippet
   - [x] explanation why the specific error was ommitted based on its Rule
   - [ ] possible fix suggestions
+- [ ] language server protocol
+  - [ ] diagnostics for full sqleibniz analysis
+  - [ ] snippets
+  - [ ] intelligent completions
 
 ### Supported sql statements
 
@@ -95,11 +100,56 @@ Uninstall via:
 make uninstall
 ```
 
-## Usage
+<!--## Language Server Protocol (lsp)
+
+> [!WARNING]
+> This feature is not yet implemented.
+
+### Setup in Neovim
+
+> requires systemwide installation beforehand
+-->
+
+## Command line interface usage
 
 ```shell
-sqleibniz <file>
-sqleibniz <file1> <file2>
+LSP and analysis cli for sql. Check for valid syntax, semantics and perform dynamic analysis
+
+Usage: sqleibniz [OPTIONS] [PATHS]...
+
+Arguments:
+  [PATHS]...
+          files to analyse
+
+Options:
+  -i, --ignore-config
+          instruct sqleibniz to ignore the configuration, if found
+
+  -c, --config <CONFIG>
+          path to the configuration
+
+          [default: leibniz.toml]
+
+  -s, --silent
+          disable stdout/stderr output
+
+  -D <DISABLE>
+          disable diagnostics by their rules, all are enabled by default - this may change in the future
+
+          Possible values:
+          - no-content:                Source file is empty
+          - no-statements:             Source file is not empty but holds no statements
+          - unimplemented:             Source file contains constructs sqleibniz does not yet understand
+          - bad-sqleibniz-instruction: Source file contains invalid sqleibniz instruction
+          - unterminated-string:       Source file contains an unterminated string
+          - unknown-character:         The source file contains an unknown character
+          - invalid-numeric-literal:   The source file contains an invalid numeric literal, either overflow or incorrect syntax
+          - invalid-blob:              The source file contains an invalid blob literal, either bad hex data (a-f,A-F,0-9) or incorrect syntax
+          - syntax:                    The source file contains a structure with incorrect syntax
+          - semicolon:                 The source file is missing a semicolon
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
 ### Configuration
