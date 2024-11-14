@@ -71,7 +71,7 @@ impl<'a> Parser<'a> {
     }
 
     fn skip_until_semicolon(&mut self) {
-        while !self.is_eof() && !self.is(Type::Semicolon) {
+        while !self.is(Type::Semicolon) {
             self.advance();
         }
     }
@@ -134,7 +134,7 @@ impl<'a> Parser<'a> {
             );
             if t == Type::Semicolon {
                 err.msg = "Missing semicolon".into();
-                err.note = "Terminate statements with ';'".into();
+                err.note.push_str(", terminate statements with ';'");
                 err.rule = Rule::Semicolon;
                 err.improved_line = Some(ImprovedLine {
                     snippet: ";",
@@ -167,7 +167,7 @@ impl<'a> Parser<'a> {
                 ..
             }) = self.cur()
             {
-                // skip all token until the next statement ends
+                // skip all token until the statement ends
                 while !self.is(Type::Semicolon) {
                     self.advance();
                 }
@@ -215,6 +215,16 @@ impl<'a> Parser<'a> {
             Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
             Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
             Type::Keyword(Keyword::ROLLBACK) => self.rollback_stmt(),
+            Type::Semicolon => {
+                self.errors.push(self.err(
+                    "Unexpected Token",
+                    "Semicolon makes no sense at this point",
+                    self.cur()?,
+                    Rule::Syntax,
+                ));
+                self.advance();
+                None
+            }
 
             // explicitly disallowing literals at this point: results in clearer and more
             // understandable error messages
@@ -241,7 +251,7 @@ impl<'a> Parser<'a> {
                 self.errors.push(self.err(
                     "Unimplemented",
                     &format!(
-                        "sqleibniz can not yet analyse the token {:?}, skipping statement",
+                        "sqleibniz can not yet analyse the token {:?}, skipping ahead to next statement",
                         self.cur()?.ttype
                     ),
                     self.cur()?,
@@ -328,6 +338,21 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
+        if !self.is(Type::Semicolon) {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!(
+                    "ROLLBACK end as Semicolon expected, got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
+            self.errors.push(err);
+            self.advance();
+        }
+
         some_box!(rollback)
     }
 
@@ -349,7 +374,7 @@ impl<'a> Parser<'a> {
                 let mut err = self.err(
                     "Unexpected Token",
                     &format!(
-                        "Wanted Keyword(Keyword::TRANSACTION) or Semicolon, got {:?}",
+                        "Wanted Keyword(TRANSACTION) or Semicolon, got {:?}",
                         self.cur()?.ttype
                     ),
                     self.cur()?,
