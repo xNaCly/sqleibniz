@@ -10,6 +10,8 @@ use rules::{Config, Disabled};
 mod error;
 /// lexer converts the input into a stream of token for the parser
 mod lexer;
+/// lsp implements the language server protocol to provide diagnostics, suggestions and snippets for sql based on the sqleibniz tooling
+mod lsp;
 /// parser converts the token stream into an abstract syntax tree
 mod parser;
 /// rules controls the error display and configuration
