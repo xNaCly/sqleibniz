@@ -1,10 +1,10 @@
 #![allow(dead_code)]
-use std::{env, fs, process::exit, vec};
+use std::{fs, process::exit, vec};
 
+use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
-use parser::Parser;
-use rules::{Config, Disabled};
+use rules::{Config, Disabled, Rule};
 
 /// error does formatting and highlighting for errors
 mod error;
@@ -19,6 +19,32 @@ mod rules;
 /// types holds all shared types between the above modules
 mod types;
 
+/// LSP and analysis cli for sql. Check for valid syntax, semantics and perform dynamic analysis.
+#[derive(clap::Parser)]
+#[command(about, long_about=None)]
+struct Cli {
+    /// instruct sqleibniz to ignore the configuration, if found
+    #[arg(short, long)]
+    ignore_config: bool,
+
+    /// files to analyse
+    paths: Vec<String>,
+
+    /// path to the configuration
+    #[arg(short = 'c', long, default_value = "leibniz.toml")]
+    config: String,
+
+    /// disable stdout/stderr output
+    #[arg(short = 's', long)]
+    silent: bool,
+
+    /// disable diagnostics by their rules, all are enabled by default - this may change in the
+    /// future
+    #[arg(short = 'D')]
+    #[clap(value_enum)]
+    disable: Option<Vec<Rule>>,
+}
+
 struct FileResult {
     name: String,
     errors: usize,
@@ -26,42 +52,57 @@ struct FileResult {
 }
 
 fn main() {
-    if env::args().len() == 1 {
-        error::err("no source file(s) provided, exiting");
+    let args = Cli::parse();
+    if args.paths.is_empty() {
+        if !args.silent {
+            error::err("no source file(s) provided, exiting");
+        }
         exit(1);
     }
 
     let mut config = Config {
         disabled: Disabled { rules: vec![] },
     };
-    if let Ok(config_str) = fs::read_to_string("leibniz.toml") {
-        if let Ok(conf) = toml::from_str(&config_str) {
-            config = conf
+
+    if !args.ignore_config {
+        if let Ok(config_str) = fs::read_to_string(args.config) {
+            if let Ok(conf) = toml::from_str(&config_str) {
+                config = conf
+            }
         }
     }
 
-    if !config.disabled.rules.is_empty() {
-        warn("Ignoring the following diagnostics, according to 'leibniz.toml':");
+    if let Some(rules) = args.disable {
+        let mut p = rules.clone();
+        config.disabled.rules.append(&mut p);
+    }
+
+    if !config.disabled.rules.is_empty() && !args.silent {
+        warn("Ignoring the following diagnostics, as specified:");
         for rule in &config.disabled.rules {
             print_str_colored(" -> ", error::Color::Blue);
             println!("{}", rule.name())
         }
     }
 
-    let mut files = env::args()
-        .skip(1)
+    let mut files = args
+        .paths
+        .into_iter()
         .map(|name| FileResult {
             name,
             errors: 0,
             ignored_errors: 0,
         })
         .collect::<Vec<FileResult>>();
+
     for file in &mut files {
         let mut errors = vec![];
         let content = match fs::read(&file.name) {
             Ok(c) => c,
             Err(err) => {
-                error::err(&format!("failed to read file '{}': {}", file.name, err));
+                if !args.silent {
+                    error::err(&format!("failed to read file '{}': {}", file.name, err));
+                }
                 exit(1);
             }
         };
@@ -71,7 +112,7 @@ fn main() {
         errors.push(lexer.errors);
 
         if !toks.is_empty() {
-            let mut parser = Parser::new(toks, file.name.as_str());
+            let mut parser = parser::Parser::new(toks, file.name.as_str());
             let _ = parser.parse();
             errors.push(parser.errors);
         }
@@ -89,7 +130,7 @@ fn main() {
             })
             .collect::<Vec<&error::Error>>();
 
-        if !processed_errors.is_empty() {
+        if !processed_errors.is_empty() && !args.silent {
             error::print_str_colored(
                 &format!("{:=^72}\n", format!(" {} ", file.name)),
                 error::Color::Blue,
@@ -104,6 +145,14 @@ fn main() {
         }
         file.errors = processed_errors.len();
         file.ignored_errors = ignored_errors;
+    }
+
+    if args.silent {
+        let verified = files.iter().filter(|f| f.errors == 0).count();
+        if verified != files.len() {
+            exit(1);
+        }
+        return;
     }
 
     error::print_str_colored(&format!("{:=^72}\n", " Summary "), error::Color::Blue);
@@ -145,5 +194,9 @@ fn main() {
         verified,
         files.len(),
         files.len() - verified
-    )
+    );
+
+    if verified != files.len() {
+        exit(1);
+    }
 }
