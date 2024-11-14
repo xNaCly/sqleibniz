@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
 
 /// https://sqlite.org/datatype3.html#storage_classes_and_datatypes
 #[derive(Debug)]
@@ -64,5 +64,6 @@ pub struct Table {
 /// Context holds information necessary for the analysis of sql statements.
 pub struct Context {
     pub tables: Vec<Table>,
-    pub save_points: Vec<String>,
+    pub save_points: HashSet<String>,
+    pub databases: HashSet<String>,
 }
