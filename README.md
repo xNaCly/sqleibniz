@@ -112,7 +112,7 @@ make uninstall
 
 ## Command line interface usage
 
-```shell
+```text
 LSP and analysis cli for sql. Check for valid syntax, semantics and perform dynamic analysis
 
 Usage: sqleibniz [OPTIONS] [PATHS]...
