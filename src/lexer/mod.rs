@@ -97,7 +97,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// progresses in the input until ',\n or EOF are hit.
-    fn string(&mut self) -> Result<Token, error::Error> {
+    fn string(&mut self) -> Result<Token, Box<error::Error>> {
         let start = self.pos;
         let line_start = self.line_pos;
         while !self.is_eof() {
@@ -119,7 +119,7 @@ impl<'a> Lexer<'a> {
                     snippet: "'",
                     start: err.end,
                 });
-                return Err(err);
+                return Err(Box::new(err));
             } else if self.is('\'') {
                 return Ok(Token {
                     line: self.line,
@@ -138,7 +138,12 @@ impl<'a> Lexer<'a> {
                 });
             }
         }
-        Err(self.err("Impossible case", "", self.line_pos, Rule::Unimplemented))
+        Err(Box::new(self.err(
+            "Impossible case",
+            "",
+            self.line_pos,
+            Rule::Unimplemented,
+        )))
     }
 
     pub fn run(&mut self) -> Vec<Token> {
@@ -219,7 +224,7 @@ impl<'a> Lexer<'a> {
                 // string, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '\'' => match self.string() {
                     Ok(str_tok) => r.push(str_tok),
-                    Err(err) => self.errors.push(err),
+                    Err(err) => self.errors.push(*err),
                 },
                 '*' => r.push(self.single(Type::Asterisk)),
                 ';' => r.push(self.single(Type::Semicolon)),
@@ -333,7 +338,7 @@ impl<'a> Lexer<'a> {
                             if let Type::String(str) = &str_tok.ttype {
                                 let mut had_bad_hex = false;
                                 for (idx, c) in str.chars().enumerate() {
-                                    if !matches!(c, 'a'..='f'|'A'..='F'|'0'..='9') {
+                                    if !c.is_ascii_hexdigit() {
                                         let mut err = self.err("Bad blob data", &format!("a Blob is hexadecimal data, '{}' is not valid hex (a..=f, A..=F, 0..=9)", c), line_start+2+idx, Rule::InvalidBlob);
                                         err.end = line_start + 2 + idx;
                                         err.doc_url = Some("https://www.sqlite.org/lang_expr.html#literal_values_constants_");

@@ -1,6 +1,7 @@
 mod ctx;
 mod keyword;
 
+#[allow(unused_imports)]
 pub use self::ctx::Context;
 /// this shit is really fucking idiotic, but i have to reexport
 /// private identifiers, rust you are fucking weird

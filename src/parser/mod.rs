@@ -51,10 +51,7 @@ impl<'a> Parser<'a> {
             note: note.into(),
             msg: msg.into(),
             start: start.start,
-            end: match self.cur() {
-                Some(tok) => tok.end,
-                None => start.start,
-            },
+            end: self.cur().map_or(start.start, |tok| tok.end),
             doc_url: None,
         }
     }
@@ -442,7 +439,7 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
-        return some_box!(begin);
+        some_box!(begin)
     }
 
     /// https://www.sqlite.org/lang_vacuum.html
