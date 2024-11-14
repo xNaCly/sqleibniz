@@ -109,6 +109,7 @@ mod should_fail {
     test_group_fail! {
         comment,
         line_comment: "-- comment",
+        line_comment_with_newline: "--comment\n",
         multiline_comment_single_line: "/**/",
         multiline_comment: "/*\n\n\n*/"
     }

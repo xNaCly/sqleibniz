@@ -133,7 +133,7 @@ impl<'a> Lexer<'a> {
                         )
                         .unwrap_or_default(),
                     ),
-                    end: end + 1,
+                    end: end + 2,
                     start: line_start,
                 });
             }
