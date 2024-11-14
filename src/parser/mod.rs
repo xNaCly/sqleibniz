@@ -162,6 +162,19 @@ impl<'a> Parser<'a> {
     fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn Node>>> {
         let mut r = vec![];
         while !self.is_eof() {
+            if let Some(Token {
+                ttype: Type::InstructionExpect,
+                ..
+            }) = self.cur()
+            {
+                // skip all token until the next statement ends
+                while !self.is(Type::Semicolon) {
+                    self.advance();
+                }
+                // skip ';'
+                self.advance();
+                continue;
+            }
             let stmt = self.sql_stmt_prefix();
             if stmt.is_some() {
                 r.push(stmt);
@@ -173,15 +186,6 @@ impl<'a> Parser<'a> {
 
     fn sql_stmt_prefix(&mut self) -> Option<Box<dyn Node>> {
         match self.cur()?.ttype {
-            // skip all token until the next statement ends
-            Type::InstructionExpect => {
-                while !self.is(Type::Semicolon) {
-                    self.advance();
-                }
-                // skip ';'
-                self.advance();
-                self.sql_stmt_prefix()
-            }
             Type::Keyword(Keyword::EXPLAIN) => {
                 let mut e = Explain {
                     t: self.cur()?.clone(),
