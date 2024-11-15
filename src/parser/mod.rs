@@ -157,6 +157,27 @@ impl<'a> Parser<'a> {
         self.sql_stmt_list()
     }
 
+    /// checks if current token is not semicolon, if it isnt pushes an error
+    fn expect_end(&mut self, doc: &'static str) -> Option<()> {
+        if !self.is(Type::Semicolon) {
+            let mut err = self.err(
+                "Unexpected Statement Continuation",
+                &format!(
+                    "End of statement via Semicolon expected, got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            if !doc.is_empty() {
+                err.doc_url = Some(doc);
+            }
+            self.errors.push(err);
+            self.advance();
+        }
+        None
+    }
+
     /// see: https://www.sqlite.org/syntax/sql-stmt-list.html
     fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn Node>>> {
         let mut r = vec![];
@@ -167,9 +188,7 @@ impl<'a> Parser<'a> {
             }) = self.cur()
             {
                 // skip all token until the statement ends
-                while !self.is(Type::Semicolon) {
-                    self.advance();
-                }
+                self.skip_until_semicolon();
                 // skip ';'
                 self.advance();
                 continue;
@@ -337,20 +356,7 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
-        if !self.is(Type::Semicolon) {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!(
-                    "ROLLBACK end as Semicolon expected, got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/lang_transaction.html");
-            self.errors.push(err);
-            self.advance();
-        }
+        self.expect_end("https://www.sqlite.org/lang_transaction.html");
 
         some_box!(rollback)
     }
@@ -385,18 +391,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if !self.is(Type::Semicolon) {
-            self.errors.push(self.err(
-                "Unexpected Token",
-                &format!(
-                    "Wanted no tokens except Semicolon at this point, got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            ));
-            self.advance();
-        }
+        self.expect_end("https://www.sqlite.org/lang_transaction.html");
 
         commit
     }
@@ -454,18 +449,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if !self.is(Type::Semicolon) {
-            self.errors.push(self.err(
-                "Unexpected Token",
-                &format!(
-                    "Wanted no tokens except Semicolon at this point, got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            ));
-            self.advance();
-        }
+        self.expect_end("https://www.sqlite.org/lang_transaction.html");
 
         some_box!(begin)
     }
@@ -533,6 +517,8 @@ impl<'a> Parser<'a> {
             }
             self.advance(); // skip filename or error token
         }
+
+        self.expect_end("https://www.sqlite.org/lang_vacuum.html");
 
         some_box!(v)
     }
