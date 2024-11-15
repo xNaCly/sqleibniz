@@ -3,7 +3,7 @@ use crate::{
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Begin, Commit, Explain, Literal, Node, Rollback, Vacuum};
+use nodes::{Begin, Commit, Detach, Explain, Literal, Node, Rollback, Vacuum};
 
 mod nodes;
 mod tests;
@@ -229,10 +229,14 @@ impl<'a> Parser<'a> {
     /// see: https://www.sqlite.org/syntax/sql-stmt.html
     fn sql_stmt(&mut self) -> Option<Box<dyn Node>> {
         match self.cur()?.ttype {
-            Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
-            Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
-            Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
+            // TODO: add new statement starts here
+            Type::Keyword(Keyword::DETACH) => self.detach_stmt(),
             Type::Keyword(Keyword::ROLLBACK) => self.rollback_stmt(),
+            Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
+            Type::Keyword(Keyword::BEGIN) => self.begin_stmt(),
+            Type::Keyword(Keyword::VACUUM) => self.vacuum_stmt(),
+
+            // statement should not start with a semicolon 󰚌
             Type::Semicolon => {
                 self.errors.push(self.err(
                     "Unexpected Token",
@@ -279,6 +283,42 @@ impl<'a> Parser<'a> {
                 None
             }
         }
+    }
+
+    // TODO: add new statement function here *_stmt()
+    // fn $1_stmt(&mut self) -> Option<Box<dyn Node>> {}
+
+    fn detach_stmt(&mut self) -> Option<Box<dyn Node>> {
+        let t = self.cur()?.clone();
+        self.advance();
+
+        // skip optional DATABASE path
+        if self.is(Type::Keyword(Keyword::DATABASE)) {
+            self.advance();
+        }
+
+        let r: Option<Box<dyn Node>> = if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
+            self.advance();
+            some_box!(Detach {
+                t,
+                schema_name: schema_name.into()
+            })
+        } else {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!(
+                    "DETACH requires Ident(<schema_name>) at this point, got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/lang_detach.html");
+            self.errors.push(err);
+            None
+        };
+        self.expect_end("https://www.sqlite.org/lang_detach.html");
+        r
     }
 
     /// https://www.sqlite.org/syntax/rollback-stmt.html

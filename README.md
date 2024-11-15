@@ -54,7 +54,7 @@ dynamic correctness. See below for a list of currently implemented features.
 |      | `create-virtual-table-stmt` |                                 |                  |
 |      | `delete-stmt`               |                                 |                  |
 |      | `delete-stmt-limited`       |                                 |                  |
-|      | `detach-stmt`               |                                 |                  |
+| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`   |                  |
 |      | `drop-index-stmt`           |                                 |                  |
 |      | `drop-table-stmt`           |                                 |                  |
 |      | `drop-view-stmt`            |                                 |                  |

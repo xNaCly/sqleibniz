@@ -112,7 +112,6 @@ EXPLAIN VACUUM;
     test_group_pass_assert! {
         detach_stmt,
 
-        detach:r"DETACH;"=vec![Type::Keyword(Keyword::DETACH)],
         detach_schema_name:r"DETACH schema_name;"=vec![Type::Keyword(Keyword::DETACH)],
         detach_database_schema_name:r"DETACH DATABASE schema_name;"=vec![Type::Keyword(Keyword::DETACH)]
     }
@@ -185,5 +184,16 @@ mod should_fail {
         rollback_transaction_to_savepoint_save_point_no_semicolon:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point",
 
         rollback_transaction_to_literal_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT 'hello';"
+    }
+
+    test_group_fail! {
+        detach_stmt,
+
+        detach_schema_name_no_semicolon:r"DETACH schema_name",
+        detach_database_schema_name_no_semicolon:r"DETACH DATABASE schema_name",
+
+        detach_schema_no_name:r"DETACH;",
+        detach_database_no_schema_name:r"DETACH DATABASE;",
+        detach_schema_literal_instead_of_name:r"DETACH 'this string should not be here';"
     }
 }
