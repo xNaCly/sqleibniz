@@ -65,10 +65,18 @@ fn main() {
     };
 
     if !args.ignore_config {
-        if let Ok(config_str) = fs::read_to_string(args.config) {
-            if let Ok(conf) = toml::from_str(&config_str) {
-                config = conf
-            }
+        match fs::read_to_string(&args.config) {
+            Ok(config_str) => match toml::from_str(&config_str) {
+                Ok(conf) => config = conf,
+                Err(err) => warn(&format!(
+                    "Failed to parse configuration file '{}': {}",
+                    args.config, err
+                )),
+            },
+            Err(err) => warn(&format!(
+                "Failed to read configuration file '{}': {}",
+                args.config, err
+            )),
         }
     }
 
