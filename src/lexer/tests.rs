@@ -39,6 +39,7 @@ macro_rules! test_group_fail {
 
 #[cfg(test)]
 mod should_pass {
+
     test_group_pass_assert! {
         booleans,
         r#true: "true"=vec![Type::Boolean(true)],

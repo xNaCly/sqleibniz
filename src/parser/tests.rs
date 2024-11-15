@@ -108,6 +108,14 @@ EXPLAIN VACUUM;
         rollback_transaction_to_save_point:r"ROLLBACK TRANSACTION TO save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)],
         rollback_transaction_to_savepoint_save_point:r"ROLLBACK TRANSACTION TO SAVEPOINT save_point;"=vec![Type::Keyword(Keyword::ROLLBACK)]
     }
+
+    test_group_pass_assert! {
+        detach_stmt,
+
+        detach:r"DETACH;"=vec![Type::Keyword(Keyword::DETACH)],
+        detach_schema_name:r"DETACH schema_name;"=vec![Type::Keyword(Keyword::DETACH)],
+        detach_database_schema_name:r"DETACH DATABASE schema_name;"=vec![Type::Keyword(Keyword::DETACH)]
+    }
 }
 
 #[cfg(test)]

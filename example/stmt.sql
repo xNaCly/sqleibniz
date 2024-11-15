@@ -35,5 +35,9 @@ ROLLBACK TO save_point;
 ROLLBACK TO SAVEPOINT save_point;
 ROLLBACK TRANSACTION;
 ROLLBACK TRANSACTION TO save_point;
-ROLLBACK TRANSACTION TO SAVEPOINT 'huh';
+ROLLBACK TRANSACTION TO SAVEPOINT save_point;
 /* ------------------------------------------------------ */
+
+-- https://www.sqlite.org/lang_detach.html
+DETACH schema_name;
+DETACH DATABASE schema_name;
