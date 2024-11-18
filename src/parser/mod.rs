@@ -93,8 +93,8 @@ impl<'a> Parser<'a> {
         self.cur().map_or(false, |tok| tok.ttype == t)
     }
 
-    fn skip_until_semicolon(&mut self) {
-        while !self.is(Type::Semicolon) {
+    fn skip_until_semicolon_or_eof(&mut self) {
+        while !self.is_eof() && !self.is(Type::Semicolon) {
             self.advance();
         }
     }
@@ -215,9 +215,9 @@ impl<'a> Parser<'a> {
             }) = self.cur()
             {
                 // skip all token until the statement ends
-                self.skip_until_semicolon();
+                self.skip_until_semicolon_or_eof();
                 // skip ';'
-                self.advance();
+                self.consume(Type::Semicolon);
                 continue;
             }
             let stmt = self.sql_stmt_prefix();
@@ -312,7 +312,8 @@ impl<'a> Parser<'a> {
                     self.cur()?,
                     Rule::Unimplemented,
                 ));
-                self.skip_until_semicolon();
+                self.skip_until_semicolon_or_eof();
+                self.consume(Type::Semicolon);
                 None
             }
         };
@@ -566,7 +567,7 @@ impl<'a> Parser<'a> {
                 self.errors.push(err);
                 // TODO: think about if this is smart at this point, skipping to the next ; could
                 // be skipping too many tokens
-                self.skip_until_semicolon();
+                self.skip_until_semicolon_or_eof();
             }
             _ => {
                 let mut err = self.err(
