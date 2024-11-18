@@ -12,9 +12,9 @@ mod tests;
 mod tracer;
 
 macro_rules! trace {
-    ($tracer:expr, $fn:literal) => {
+    ($tracer:expr, $fn:literal, $tok:expr) => {
         #[cfg(feature = "trace_parser")]
-        $tracer.call($fn);
+        $tracer.call($fn, $tok.map(|t| t.ttype.clone()));
     };
 }
 
@@ -198,7 +198,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
-        trace!(self.tracer, "parse");
+        trace!(self.tracer, "parse", self.cur());
         let r = self.sql_stmt_list();
         detrace!(self.tracer);
         r
@@ -206,7 +206,7 @@ impl<'a> Parser<'a> {
 
     /// see: https://www.sqlite.org/syntax/sql-stmt-list.html
     fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
-        trace!(self.tracer, "sql_stmt_list");
+        trace!(self.tracer, "sql_stmt_list", self.cur());
         let mut r = vec![];
         while !self.is_eof() {
             if let Some(Token {
@@ -231,7 +231,7 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_stmt_prefix(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "sql_stmt_prefix");
+        trace!(self.tracer, "sql_stmt_prefix", self.cur());
         let r: Option<Box<dyn nodes::Node>> = match self.cur()?.ttype {
             Type::Keyword(Keyword::EXPLAIN) => {
                 let mut e = nodes::Explain {
@@ -259,7 +259,7 @@ impl<'a> Parser<'a> {
 
     /// see: https://www.sqlite.org/syntax/sql-stmt.html
     fn sql_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "sql_stmt");
+        trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
             Type::Keyword(Keyword::ANALYZE) => self.analyse_stmt(),
@@ -326,7 +326,7 @@ impl<'a> Parser<'a> {
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
 
     fn analyse_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "analyse_stmt");
+        trace!(self.tracer, "analyse_stmt", self.cur());
         let mut a = nodes::Analyze {
             t: self.cur()?.clone(),
             schema_index_or_table_name: None,
@@ -377,7 +377,7 @@ impl<'a> Parser<'a> {
     }
 
     fn detach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "detach_stmt");
+        trace!(self.tracer, "detach_stmt", self.cur());
         let t = self.cur()?.clone();
         self.advance();
 
@@ -414,7 +414,7 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/syntax/rollback-stmt.html
     fn rollback_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "rollback_stmt");
+        trace!(self.tracer, "rollback_stmt", self.cur());
         let mut rollback = nodes::Rollback {
             t: self.cur()?.clone(),
             save_point: None,
@@ -495,7 +495,7 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/syntax/commit-stmt.html
     fn commit_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "commit_stmt");
+        trace!(self.tracer, "commit_stmt", self.cur());
         let commit: Option<Box<dyn nodes::Node>> = some_box!(nodes::Commit {
             t: self.cur()?.clone(),
         });
@@ -532,7 +532,7 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/syntax/begin-stmt.html
     fn begin_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "begin_stmt");
+        trace!(self.tracer, "begin_stmt", self.cur());
         let begin: nodes::Begin = nodes::Begin {
             t: self.cur()?.clone(),
         };
@@ -592,7 +592,7 @@ impl<'a> Parser<'a> {
 
     /// https://www.sqlite.org/lang_vacuum.html
     fn vacuum_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "vacuum_stmt");
+        trace!(self.tracer, "vacuum_stmt", self.cur());
         let mut v = nodes::Vacuum {
             t: self.cur()?.clone(),
             schema_name: None,
@@ -664,7 +664,7 @@ impl<'a> Parser<'a> {
 
     /// see: https://www.sqlite.org/syntax/literal-value.html
     fn literal_value(&mut self) -> Option<Box<dyn nodes::Node>> {
-        trace!(self.tracer, "literal_value");
+        trace!(self.tracer, "literal_value", self.cur());
         detrace!(self.tracer);
         let cur = self.cur()?;
         match cur.ttype {
