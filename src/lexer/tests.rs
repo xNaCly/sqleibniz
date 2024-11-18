@@ -119,8 +119,10 @@ mod should_fail {
         number,
         bad_hex: "0x",
         bad_hex2: "0X",
-        bad_float: ".",
-        bad_float_multiple_dots: "....",
+        // was a test before, but due to lexer changes this just is Type::Dot
+        // bad_float: ".",
+        // was a test before, but due to lexer changes this just is Type::Dot*4
+        // bad_float_multiple_dots: "....",
         bad_float_with_e: ".e",
         bad_float_with_large_e: ".E",
         bad_float_multiple_e: ".eeee",
