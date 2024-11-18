@@ -43,7 +43,7 @@ dynamic correctness. See below for a list of currently implemented features.
 | ---- | --------------------------- | ------------------------------- | ---------------- |
 | ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`           |                  |
 |      | `alter-table-stmt`          |                                 |                  |
-|      | `analyze-stmt`              |                                 |                  |
+| ✅   | `analyze-stmt`              | `ANALYZE my_table;`             |                  |
 |      | `attach-stmt`               |                                 |                  |
 | ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`   |                  |
 | ✅   | `commit-stmt`               | `END TRANSACTION;`              |                  |
