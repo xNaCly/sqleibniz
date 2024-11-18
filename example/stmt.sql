@@ -41,3 +41,9 @@ ROLLBACK TRANSACTION TO SAVEPOINT save_point;
 -- https://www.sqlite.org/lang_detach.html
 DETACH schema_name;
 DETACH DATABASE schema_name;
+
+-- https://www.sqlite.org/lang_analyze.html
+ANALYZE;
+ANALYZE schema_name;
+ANALYZE index_or_table_name.index_or_table_name;
+ANALYZE schema_name.index_or_table_name;

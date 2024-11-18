@@ -1,21 +1,42 @@
+#[cfg(feature = "trace_parser")]
+use tracer::Tracer;
+
 use crate::{
     error::{Error, ImprovedLine},
     rules::Rule,
     types::{Keyword, Token, Type},
 };
-use nodes::{Begin, Commit, Detach, Explain, Literal, Node, Rollback, Vacuum};
 
 mod nodes;
 mod tests;
+mod tracer;
+
+macro_rules! trace {
+    ($tracer:expr, $fn:literal) => {
+        #[cfg(feature = "trace_parser")]
+        $tracer.call($fn);
+    };
+}
+
+macro_rules! detrace {
+    ($tracer:expr) => {
+        #[cfg(feature = "trace_parser")]
+        {
+            $tracer.indent -= 1;
+        }
+    };
+}
 
 pub struct Parser<'a> {
     pos: usize,
     tokens: Vec<Token>,
     name: &'a str,
     pub errors: Vec<Error>,
+    #[cfg(feature = "trace_parser")]
+    tracer: tracer::Tracer,
 }
 
-/// wrap $expr in Some(Box::new($expr))
+/// wrap argument in Some(Box::new(_))
 macro_rules! some_box {
     ($expr:expr) => {
         Some(Box::new($expr))
@@ -35,6 +56,8 @@ impl<'a> Parser<'a> {
             name,
             tokens,
             errors: vec![],
+            #[cfg(feature = "trace_parser")]
+            tracer: Tracer::new(),
         }
     }
 
@@ -153,10 +176,6 @@ impl<'a> Parser<'a> {
             .map_or(false, |tok| tok.ttype == t)
     }
 
-    pub fn parse(&mut self) -> Vec<Option<Box<dyn Node>>> {
-        self.sql_stmt_list()
-    }
-
     /// checks if current token is not semicolon, if it isnt pushes an error
     fn expect_end(&mut self, doc: &'static str) -> Option<()> {
         if !self.is(Type::Semicolon) {
@@ -178,8 +197,16 @@ impl<'a> Parser<'a> {
         None
     }
 
+    pub fn parse(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
+        trace!(self.tracer, "parse");
+        let r = self.sql_stmt_list();
+        detrace!(self.tracer);
+        r
+    }
+
     /// see: https://www.sqlite.org/syntax/sql-stmt-list.html
-    fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn Node>>> {
+    fn sql_stmt_list(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
+        trace!(self.tracer, "sql_stmt_list");
         let mut r = vec![];
         while !self.is_eof() {
             if let Some(Token {
@@ -199,13 +226,15 @@ impl<'a> Parser<'a> {
             }
             self.consume(Type::Semicolon);
         }
+        detrace!(self.tracer);
         r
     }
 
-    fn sql_stmt_prefix(&mut self) -> Option<Box<dyn Node>> {
-        match self.cur()?.ttype {
+    fn sql_stmt_prefix(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "sql_stmt_prefix");
+        let r: Option<Box<dyn nodes::Node>> = match self.cur()?.ttype {
             Type::Keyword(Keyword::EXPLAIN) => {
-                let mut e = Explain {
+                let mut e = nodes::Explain {
                     t: self.cur()?.clone(),
                     child: None,
                 };
@@ -223,13 +252,17 @@ impl<'a> Parser<'a> {
                 some_box!(e)
             }
             _ => self.sql_stmt(),
-        }
+        };
+        detrace!(self.tracer);
+        r
     }
 
     /// see: https://www.sqlite.org/syntax/sql-stmt.html
-    fn sql_stmt(&mut self) -> Option<Box<dyn Node>> {
-        match self.cur()?.ttype {
+    fn sql_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "sql_stmt");
+        let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            Type::Keyword(Keyword::ANALYZE) => self.analyse_stmt(),
             Type::Keyword(Keyword::DETACH) => self.detach_stmt(),
             Type::Keyword(Keyword::ROLLBACK) => self.rollback_stmt(),
             Type::Keyword(Keyword::COMMIT) | Type::Keyword(Keyword::END) => self.commit_stmt(),
@@ -282,13 +315,68 @@ impl<'a> Parser<'a> {
                 self.skip_until_semicolon();
                 None
             }
-        }
+        };
+
+        detrace!(self.tracer);
+        r
     }
 
     // TODO: add new statement function here *_stmt()
-    // fn $1_stmt(&mut self) -> Option<Box<dyn Node>> {}
+    // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
 
-    fn detach_stmt(&mut self) -> Option<Box<dyn Node>> {
+    fn analyse_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "analyse_stmt");
+        let mut a = nodes::Analyze {
+            t: self.cur()?.clone(),
+            schema_index_or_table_name: None,
+            schema_with_table_or_index_name: None,
+        };
+
+        self.advance();
+
+        match &self.cur()?.ttype {
+            // ANALYZE schema_name.table_or_index_name
+            Type::Ident(ident) if self.next_is(Type::Dot) => {
+                let mut tuple: (String, String) = (String::from(ident), "".into());
+                // skip ident
+                self.advance();
+                // skip dot
+                self.advance();
+
+                if let Type::Ident(ident) = &self.cur()?.ttype {
+                    tuple.1 = ident.to_string();
+                    a.schema_with_table_or_index_name = Some(tuple);
+                    self.advance();
+                } else {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "ANALYZE requires Ident(<table_or_index_name>) after Dot and Ident(<schema_name>), got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/lang_analyze.html");
+                    self.errors.push(err);
+                }
+            }
+            // ANALYZE schema_name
+            // ANALYZE index_or_table_name
+            Type::Ident(ident) => {
+                a.schema_index_or_table_name = Some(ident.into());
+                self.advance();
+            }
+            _ => (),
+        }
+
+        self.expect_end("https://www.sqlite.org/lang_analyze.html");
+        detrace!(self.tracer);
+        some_box!(a)
+    }
+
+    fn detach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "detach_stmt");
         let t = self.cur()?.clone();
         self.advance();
 
@@ -297,33 +385,36 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
-        let r: Option<Box<dyn Node>> = if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
-            self.advance();
-            some_box!(Detach {
-                t,
-                schema_name: schema_name.into()
-            })
-        } else {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!(
-                    "DETACH requires Ident(<schema_name>) at this point, got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/lang_detach.html");
-            self.errors.push(err);
-            None
-        };
+        let r: Option<Box<dyn nodes::Node>> =
+            if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
+                self.advance();
+                some_box!(nodes::Detach {
+                    t,
+                    schema_name: schema_name.into()
+                })
+            } else {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "DETACH requires Ident(<schema_name>) at this point, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_detach.html");
+                self.errors.push(err);
+                None
+            };
         self.expect_end("https://www.sqlite.org/lang_detach.html");
+        detrace!(self.tracer);
         r
     }
 
     /// https://www.sqlite.org/syntax/rollback-stmt.html
-    fn rollback_stmt(&mut self) -> Option<Box<dyn Node>> {
-        let mut rollback = Rollback {
+    fn rollback_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "rollback_stmt");
+        let mut rollback = nodes::Rollback {
             t: self.cur()?.clone(),
             save_point: None,
         };
@@ -397,13 +488,14 @@ impl<'a> Parser<'a> {
         }
 
         self.expect_end("https://www.sqlite.org/lang_transaction.html");
-
+        detrace!(self.tracer);
         some_box!(rollback)
     }
 
     /// https://www.sqlite.org/syntax/commit-stmt.html
-    fn commit_stmt(&mut self) -> Option<Box<dyn Node>> {
-        let commit: Option<Box<dyn Node>> = some_box!(Commit {
+    fn commit_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "commit_stmt");
+        let commit: Option<Box<dyn nodes::Node>> = some_box!(nodes::Commit {
             t: self.cur()?.clone(),
         });
 
@@ -433,12 +525,14 @@ impl<'a> Parser<'a> {
 
         self.expect_end("https://www.sqlite.org/lang_transaction.html");
 
+        detrace!(self.tracer);
         commit
     }
 
     /// https://www.sqlite.org/syntax/begin-stmt.html
-    fn begin_stmt(&mut self) -> Option<Box<dyn Node>> {
-        let begin: Begin = Begin {
+    fn begin_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "begin_stmt");
+        let begin: nodes::Begin = nodes::Begin {
             t: self.cur()?.clone(),
         };
 
@@ -491,12 +585,14 @@ impl<'a> Parser<'a> {
 
         self.expect_end("https://www.sqlite.org/lang_transaction.html");
 
+        detrace!(self.tracer);
         some_box!(begin)
     }
 
     /// https://www.sqlite.org/lang_vacuum.html
-    fn vacuum_stmt(&mut self) -> Option<Box<dyn Node>> {
-        let mut v = Vacuum {
+    fn vacuum_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "vacuum_stmt");
+        let mut v = nodes::Vacuum {
             t: self.cur()?.clone(),
             schema_name: None,
             filename: None,
@@ -560,11 +656,15 @@ impl<'a> Parser<'a> {
 
         self.expect_end("https://www.sqlite.org/lang_vacuum.html");
 
+        detrace!(self.tracer);
+
         some_box!(v)
     }
 
     /// see: https://www.sqlite.org/syntax/literal-value.html
-    fn literal_value(&mut self) -> Option<Box<dyn Node>> {
+    fn literal_value(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "literal_value");
+        detrace!(self.tracer);
         let cur = self.cur()?;
         match cur.ttype {
             Type::String(_)
@@ -575,7 +675,7 @@ impl<'a> Parser<'a> {
             | Type::Keyword(Keyword::CURRENT_TIME)
             | Type::Keyword(Keyword::CURRENT_DATE)
             | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
-                let s: Option<Box<dyn Node>> = some_box!(Literal { t: cur.clone() });
+                let s: Option<Box<dyn nodes::Node>> = some_box!(nodes::Literal { t: cur.clone() });
                 // skipping over the current character
                 self.advance();
                 s

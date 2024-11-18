@@ -115,6 +115,16 @@ EXPLAIN VACUUM;
         detach_schema_name:r"DETACH schema_name;"=vec![Type::Keyword(Keyword::DETACH)],
         detach_database_schema_name:r"DETACH DATABASE schema_name;"=vec![Type::Keyword(Keyword::DETACH)]
     }
+
+    test_group_pass_assert! {
+        analyze_stmt,
+
+
+        analyze:r"ANALYZE;"=vec![Type::Keyword(Keyword::ANALYZE)],
+        analyze_schema_name:r"ANALYZE schema_name;"=vec![Type::Keyword(Keyword::ANALYZE)],
+        analyze_index_or_table_name:r"ANALYZE index_or_table_name;"=vec![Type::Keyword(Keyword::ANALYZE)],
+        analyze_schema_name_with_subtable:r"ANALYZE schema_name.index_or_table_name;"=vec![Type::Keyword(Keyword::ANALYZE)]
+    }
 }
 
 #[cfg(test)]

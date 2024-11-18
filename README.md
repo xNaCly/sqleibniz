@@ -243,3 +243,47 @@ skipping the analysis of the statement directly after the sqleibniz
 instruction. A statement is terminated via `;`. `@sqleibniz::expect` therefore
 supports ignoring diagnostics for statements spanning either a single line or
 multiple lines.
+
+## Contribution
+
+Contributions are always welcome <3
+
+### Local Dev env
+
+```shell
+git clone git@github.com:xNaCly/sqleibniz.git
+cargo run example/*
+```
+
+### Debugging the parser
+
+Run sqleibniz via cargo with `--features trace_parser` to enable the log of
+each `Parser.<stmt_type>_stmt` function. This allows for a deeper insight for
+deadlocks etc.
+
+```sql
+EXPLAIN VACUUM;
+EXPLAIN QUERY PLAN VACUUM;
+```
+
+For instance, parsing the above SQL results in a nice tree:
+
+```text
+$ cargo run --features trace_parser -- -i test.sql
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running `target/debug/sqleibniz -i test.sql`
+ ↳ Parser::parse()
+  ↳ Parser::sql_stmt_list()
+   ↳ Parser::sql_stmt_prefix()
+    ↳ Parser::sql_stmt()
+     ↳ Parser::vacuum_stmt()
+    ↳ Parser::sql_stmt_prefix()
+     ↳ Parser::sql_stmt()
+      ↳ Parser::vacuum_stmt()
+=============================== Summary ================================
+[+] test.sql:
+    0 Error(s) detected
+    0 Error(s) ignored
+
+=> 1/1 Files verified successfully, 0 verification failed.
+```

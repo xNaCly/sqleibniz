@@ -67,3 +67,10 @@ node!(
     "Rollback stmt, see: https://www.sqlite.org/syntax/rollback-stmt.html",
     schema_name: String
 );
+
+node!(
+    Analyze,
+    "Analyze stmt, see: https://www.sqlite.org/syntax/lang_analyze.html",
+    schema_index_or_table_name: Option<String>,
+    schema_with_table_or_index_name: Option<(String,String)>
+);
