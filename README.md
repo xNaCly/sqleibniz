@@ -269,17 +269,18 @@ EXPLAIN QUERY PLAN VACUUM;
 For instance, parsing the above SQL results in a nice tree:
 
 ```text
-$ cargo run --features trace_parser -- -i test.sql
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
+sqleibniz master :: cargo run --features trace_parser -- -i test.sql
+   Compiling sqleibniz v0.1.0 (/home/magr6/programming/sqleibniz)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.83s
      Running `target/debug/sqleibniz -i test.sql`
- ↳ Parser::parse()
-  ↳ Parser::sql_stmt_list()
-   ↳ Parser::sql_stmt_prefix()
-    ↳ Parser::sql_stmt()
-     ↳ Parser::vacuum_stmt()
-    ↳ Parser::sql_stmt_prefix()
-     ↳ Parser::sql_stmt()
-      ↳ Parser::vacuum_stmt()
+ ↳ Parser::parse() 	with Some(Keyword(EXPLAIN))
+  ↳ Parser::sql_stmt_list() 	with Some(Keyword(EXPLAIN))
+   ↳ Parser::sql_stmt_prefix() 	with Some(Keyword(EXPLAIN))
+    ↳ Parser::sql_stmt() 	with Some(Keyword(VACUUM))
+     ↳ Parser::vacuum_stmt() 	with Some(Keyword(VACUUM))
+    ↳ Parser::sql_stmt_prefix() 	with Some(Keyword(EXPLAIN))
+     ↳ Parser::sql_stmt() 	with Some(Keyword(VACUUM))
+      ↳ Parser::vacuum_stmt() 	with Some(Keyword(VACUUM))
 =============================== Summary ================================
 [+] test.sql:
     0 Error(s) detected
