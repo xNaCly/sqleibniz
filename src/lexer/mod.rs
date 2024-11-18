@@ -234,13 +234,13 @@ impl<'a> Lexer<'a> {
                 // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
                     // only '.', with no digit following it is an indexing operation
-                    // check if next is not e/E, because these are used as scientifc notation
-                    // in floating point numbers
+                    // check if next char is not a valid member of an integer, floating point
+                    // number
                     if self.is('.')
                         && !(self.next_is('e') || self.next_is('E'))
-                        && self
+                        && !self
                             .next()
-                            .is_some_and(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+                            .is_some_and(|c| matches!(c, '_') || c.is_digit(10))
                     {
                         r.push(Token {
                             ttype: Type::Dot,
