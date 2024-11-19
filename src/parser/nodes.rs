@@ -1,4 +1,4 @@
-use crate::types::Token;
+use crate::types::{Keyword, Token};
 
 /// Generates a Node from the given input:
 ///
@@ -72,5 +72,13 @@ node!(
     Analyze,
     "Analyze stmt, see: https://www.sqlite.org/syntax/lang_analyze.html",
     schema_index_or_table_name: Option<String>,
-    schema_with_table_or_index_name: Option<(String,String)>
+    schema_with_table_or_index_name: Option<String>
+);
+
+node!(
+    Drop,
+    "Drop stmt, see: https://www.sqlite.org/lang_dropindex.html, https://www.sqlite.org/lang_droptable.html, https://www.sqlite.org/lang_droptrigger.html and https://www.sqlite.org/lang_dropview.html",
+    if_exists: bool,
+    ttype: Keyword,
+    argument: String
 );

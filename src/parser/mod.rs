@@ -11,6 +11,7 @@ mod nodes;
 mod tests;
 mod tracer;
 
+/// prints a parser function call trace if #[cfg(feature = "trace_parser")]
 macro_rules! trace {
     ($tracer:expr, $fn:literal, $tok:expr) => {
         #[cfg(feature = "trace_parser")]
@@ -18,6 +19,7 @@ macro_rules! trace {
     };
 }
 
+/// restores trace indent if #[cfg(feature = "trace_parser")]
 macro_rules! detrace {
     ($tracer:expr) => {
         #[cfg(feature = "trace_parser")]
@@ -262,6 +264,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            Type::Keyword(Keyword::DROP) => self.drop_stmt(),
             Type::Keyword(Keyword::ANALYZE) => self.analyse_stmt(),
             Type::Keyword(Keyword::DETACH) => self.detach_stmt(),
             Type::Keyword(Keyword::ROLLBACK) => self.rollback_stmt(),
@@ -337,6 +340,90 @@ impl<'a> Parser<'a> {
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
 
+    /// https://www.sqlite.org/lang_dropindex.html
+    /// https://www.sqlite.org/lang_droptable.html
+    /// https://www.sqlite.org/lang_droptrigger.html
+    /// https://www.sqlite.org/lang_dropview.html
+    fn drop_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "drop_stmt ", self.cur());
+        let mut drop = nodes::Drop {
+            t: self.cur()?.clone(),
+            if_exists: false,
+            // dummy value
+            ttype: Keyword::NULL,
+            argument: String::new(),
+        };
+        self.advance();
+
+        match self.cur()?.ttype {
+            Type::Keyword(Keyword::INDEX) => (),
+            Type::Keyword(Keyword::TABLE) => (),
+            Type::Keyword(Keyword::TRIGGER) => (),
+            Type::Keyword(Keyword::VIEW) => (),
+            _ => {
+                let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "DROP requires either TRIGGER, TABLE, TRIGGER or VIEW at this point, got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                err.doc_url = Some("https://www.sqlite.org/lang.html");
+                self.errors.push(err);
+                self.advance();
+                return None;
+            }
+        }
+
+        // we checked if the keyword is valid above
+        if let Type::Keyword(keyword) = &self.cur()?.ttype {
+            drop.ttype = keyword.clone();
+        }
+
+        // skip either INDEX;TABLE;TRIGGER or VIEW
+        self.advance();
+
+        if self.is(Type::Keyword(Keyword::IF)) {
+            self.advance();
+            self.consume(Type::Keyword(Keyword::EXISTS));
+            drop.if_exists = true;
+        }
+        if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
+            // table/index/view/trigger of a schema_name
+            drop.argument.push_str(&schema_name);
+            if self.next_is(Type::Dot) {
+                // skip Type::Ident from above
+                self.advance();
+                // skip Type::Dot
+                self.advance();
+                if let Type::Ident(index_trigger_table_view) = self.cur()?.ttype.clone() {
+                    drop.argument.push('.');
+                    drop.argument.push_str(&index_trigger_table_view);
+                } else {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "DROP requires Ident(<index_or_trigger_or_table_or_view>) after Dot and Ident(<schema_name>), got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/lang.html");
+                    self.advance();
+                    self.errors.push(err);
+                }
+            }
+            self.advance();
+        }
+
+        detrace!(self.tracer);
+        some_box!(drop)
+    }
+
+    /// https://www.sqlite.org/syntax/analyze-stmt.html
     fn analyse_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
         trace!(self.tracer, "analyse_stmt", self.cur());
         let mut a = nodes::Analyze {
@@ -350,15 +437,16 @@ impl<'a> Parser<'a> {
         match &self.cur()?.ttype {
             // ANALYZE schema_name.table_or_index_name
             Type::Ident(ident) if self.next_is(Type::Dot) => {
-                let mut tuple: (String, String) = (String::from(ident), "".into());
+                let mut schema_name = String::from(ident);
                 // skip ident
                 self.advance();
                 // skip dot
                 self.advance();
 
                 if let Type::Ident(ident) = &self.cur()?.ttype {
-                    tuple.1 = ident.to_string();
-                    a.schema_with_table_or_index_name = Some(tuple);
+                    schema_name.push('.');
+                    schema_name += ident.as_str();
+                    a.schema_with_table_or_index_name = Some(schema_name);
                     self.advance();
                 } else {
                     let mut err = self.err(
@@ -371,6 +459,7 @@ impl<'a> Parser<'a> {
                         Rule::Syntax,
                     );
                     err.doc_url = Some("https://www.sqlite.org/lang_analyze.html");
+                    self.advance();
                     self.errors.push(err);
                 }
             }
@@ -388,6 +477,7 @@ impl<'a> Parser<'a> {
         some_box!(a)
     }
 
+    /// https://www.sqlite.org/syntax/detach-stmt.html
     fn detach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
         trace!(self.tracer, "detach_stmt", self.cur());
         let t = self.cur()?.clone();

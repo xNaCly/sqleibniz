@@ -125,6 +125,19 @@ EXPLAIN VACUUM;
         analyze_index_or_table_name:r"ANALYZE index_or_table_name;"=vec![Type::Keyword(Keyword::ANALYZE)],
         analyze_schema_name_with_subtable:r"ANALYZE schema_name.index_or_table_name;"=vec![Type::Keyword(Keyword::ANALYZE)]
     }
+
+    test_group_pass_assert! {
+        drop_stmt,
+
+        drop_index_index_name:r"DROP INDEX index_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_index_if_exists_schema_name_index_name:r"DROP INDEX IF EXISTS schema_name.index_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_table_table_name:r"DROP TABLE table_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_table_if_exists_schema_name_table_name:r"DROP TABLE IF EXISTS schema_name.table_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_trigger_trigger_name:r"DROP TRIGGER trigger_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_trigger_if_exists_schema_name_trigger_name:r"DROP TRIGGER IF EXISTS schema_name.trigger_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_view_view_name:r"DROP VIEW view_name;"=vec![Type::Keyword(Keyword::DROP)],
+        drop_view_if_exists_schema_name_view_name:r"DROP VIEW IF EXISTS schema_name.view_name;"=vec![Type::Keyword(Keyword::DROP)]
+    }
 }
 
 #[cfg(test)]

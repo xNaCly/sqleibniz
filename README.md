@@ -55,9 +55,10 @@ dynamic correctness. See below for a list of currently implemented features.
 |      | `delete-stmt`               |                                 |                  |
 |      | `delete-stmt-limited`       |                                 |                  |
 | ✅   | `detach-stmt`               | `DETACH DATABASE my_database`   |                  |
-|      | `drop-index-stmt`           |                                 |                  |
-|      | `drop-table-stmt`           |                                 |                  |
-|      | `drop-view-stmt`            |                                 |                  |
+| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`          |                  |
+| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`          |                  |
+| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`      |                  |
+| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`            |                  |
 |      | `insert-stmt`               |                                 |                  |
 |      | `pragma-stmt`               |                                 | sqlite specific  |
 |      | `reindex-stmt`              |                                 |                  |

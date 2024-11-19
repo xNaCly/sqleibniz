@@ -48,3 +48,18 @@ ANALYZE schema_name;
 ANALYZE index_or_table_name.index_or_table_name;
 ANALYZE schema_name.index_or_table_name;
 
+-- https://www.sqlite.org/lang_dropindex.html
+DROP INDEX index_name;
+DROP INDEX IF EXISTS schema_name.index_name;
+
+-- https://www.sqlite.org/lang_table.html
+DROP TABLE table_name;
+DROP TABLE IF EXISTS schema_name.table_name;
+
+-- https://www.sqlite.org/lang_trigger.html
+DROP TRIGGER trigger_name;
+DROP TRIGGER IF EXISTS schema_name.trigger_name;
+
+-- https://www.sqlite.org/lang_view.html
+DROP VIEW view_name;
+DROP VIEW IF EXISTS schema_name.view_name;
