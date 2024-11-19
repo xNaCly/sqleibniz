@@ -302,7 +302,7 @@ impl<'a> Parser<'a> {
                 self.advance();
                 None
             }
-            _ => {
+            Type::Keyword(_) => {
                 self.errors.push(self.err(
                     "Unimplemented",
                     &format!(
@@ -313,7 +313,19 @@ impl<'a> Parser<'a> {
                     Rule::Unimplemented,
                 ));
                 self.skip_until_semicolon_or_eof();
-                self.consume(Type::Semicolon);
+                None
+            }
+            _ => {
+                self.errors.push(self.err(
+                    "Unknown Token",
+                    &format!(
+                        "sqleibniz does not understand the token {:?}, skipping ahead to next statement",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Unimplemented,
+                ));
+                self.skip_until_semicolon_or_eof();
                 None
             }
         };

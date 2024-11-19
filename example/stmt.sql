@@ -47,3 +47,4 @@ ANALYZE;
 ANALYZE schema_name;
 ANALYZE index_or_table_name.index_or_table_name;
 ANALYZE schema_name.index_or_table_name;
+
