@@ -10,6 +10,8 @@ pub enum Rule {
     NoStatements,
     /// Source file contains constructs sqleibniz does not yet understand
     Unimplemented,
+    /// Source file contains an unknown keyword
+    UnknownKeyword,
     /// Source file contains invalid sqleibniz instruction
     BadSqleibnizInstruction,
 
@@ -54,6 +56,7 @@ impl Rule {
             Self::Syntax => "Syntax",
             Self::Semicolon => "Semicolon",
             Self::BadSqleibnizInstruction => "BadSqleibnizInstruction",
+            Self::UnknownKeyword => "UnknownKeyword",
         }
     }
 
@@ -73,6 +76,7 @@ impl Rule {
             Self::BadSqleibnizInstruction => {
                 "The source file contains an invalid sqleibniz instruction"
             }
+            Self::UnknownKeyword => "Source file contains an unknown keyword",
         }
     }
 }
