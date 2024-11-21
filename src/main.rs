@@ -8,6 +8,9 @@ use rules::{Config, Disabled, Rule};
 
 /// error does formatting and highlighting for errors
 mod error;
+/// lev implements the levenshtein distance for all sql keywords, this is used to recommend a keyword based on a misspelled word or any
+/// unknown keyword at an arbitrary location in the source statement - mainly used at the start of a new statement
+mod lev;
 /// lexer converts the input into a stream of token for the parser
 mod lexer;
 /// lsp implements the language server protocol to provide diagnostics, suggestions and snippets for sql based on the sqleibniz tooling
