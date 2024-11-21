@@ -305,6 +305,23 @@ impl<'a> Parser<'a> {
                 self.advance();
                 None
             }
+            Type::Ident(_) => {
+                if let Type::Ident(name) = &self.cur()?.ttype {
+                    self.errors.push(self.err(
+                        "Unknown Keyword",
+                        &format!(
+                            "'{}' is not a know keyword, did you mean '{}'?",
+                            name,
+                            // TODO: replace with top 3 result of levenstein
+                            "levenstein results here"
+                        ),
+                        self.cur()?,
+                        Rule::UnknownKeyword,
+                    ));
+                }
+                self.skip_until_semicolon_or_eof();
+                None
+            }
             Type::Keyword(_) => {
                 self.errors.push(self.err(
                     "Unimplemented",
