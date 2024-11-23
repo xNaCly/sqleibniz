@@ -32,6 +32,7 @@ dynamic correctness. See below for a list of currently implemented features.
   - [x] highlighting the error in the faulty code snippet
   - [x] explanation why the specific error was ommitted based on its Rule
   - [ ] possible fix suggestions
+  - [x] suggestions for unknown and possible misspelled keywords
 - [ ] language server protocol
   - [ ] diagnostics for full sqleibniz analysis
   - [ ] snippets

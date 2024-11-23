@@ -3,6 +3,35 @@
 /// into the other
 ///
 /// see: https://en.wikipedia.org/wiki/Levenshtein_distance
-pub fn distance(a: &str, b: &str) -> usize {
-    todo!("levenshtein_distance");
+pub fn distance(a: &[u8], b: &[u8]) -> usize {
+    // TODO: this implementation is naive at best, use the matrix approach
+    if b.len() == 0 {
+        a.len()
+    } else if a.len() == 0 {
+        b.len()
+    } else if a[0] == b[0] {
+        return distance(
+            a.get(1..).unwrap_or_default(),
+            b.get(1..).unwrap_or_default(),
+        );
+    } else {
+        let first = distance(a.get(1..).unwrap_or_default(), b);
+        let second = distance(a, b.get(1..).unwrap_or_default());
+        let third = distance(
+            a.get(1..).unwrap_or_default(),
+            b.get(1..).unwrap_or_default(),
+        );
+        [first, second, third].iter().min().map_or(0, |min| 1 + min)
+    }
+}
+
+#[cfg(test)]
+mod lev {
+    use super::distance;
+
+    #[test]
+    fn kitten_sitting() {
+        // https://en.wikipedia.org/wiki/Levenshtein_distance#Example
+        assert_eq!(distance("kitten".as_bytes(), "sitting".as_bytes()), 3);
+    }
 }

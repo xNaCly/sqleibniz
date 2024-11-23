@@ -310,10 +310,9 @@ impl<'a> Parser<'a> {
                     self.errors.push(self.err(
                         "Unknown Keyword",
                         &format!(
-                            "'{}' is not a know keyword, did you mean '{}'?",
+                            "'{}' is not a know keyword, did you mean: \n\t- {}",
                             name,
-                            // TODO: replace with top 3 result of levenstein
-                            "levenstein results here"
+                            Keyword::suggestions(name).join("\n\t- ").as_str()
                         ),
                         self.cur()?,
                         Rule::UnknownKeyword,
