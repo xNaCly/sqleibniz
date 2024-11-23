@@ -144,6 +144,13 @@ EXPLAIN VACUUM;
 
         savepoint_savepoint_name:r"SAVEPOINT savepoint_name;"=vec![Type::Keyword(Keyword::SAVEPOINT)]
     }
+
+    test_group_pass_assert! {
+        release_stmt,
+
+        release_savepoint_savepoint_name:r"RELEASE SAVEPOINT savepoint_name;"=vec![Type::Keyword(Keyword::RELEASE)],
+        release_savepoint_name:r"RELEASE savepoint_name;"=vec![Type::Keyword(Keyword::RELEASE)]
+    }
 }
 
 #[cfg(test)]
@@ -250,5 +257,15 @@ mod should_fail {
         savepoint_savepoint_name_no_semicolon:r"SAVEPOINT savepoint_name",
 
         savepoint_no_savepoint_name:r"SAVEPOINT;"
+    }
+
+    test_group_fail! {
+        release_stmt,
+
+        release_savepoint_savepoint_name_no_semicolon:r"RELEASE SAVEPOINT savepoint_name",
+        release_savepoint_name_no_semicolon:r"RELEASE savepoint_name",
+
+        release_savepoint_no_savepoint_name:r"RELEASE SAVEPOINT;",
+        release_savepoint_no_name:r"RELEASE;"
     }
 }

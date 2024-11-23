@@ -40,36 +40,36 @@ dynamic correctness. See below for a list of currently implemented features.
 
 ### Supported sql statements
 
-| done | `sqlite`-syntax name        | sql example                     | non-standard sql |
-| ---- | --------------------------- | ------------------------------- | ---------------- |
-| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`           |                  |
-|      | `alter-table-stmt`          |                                 |                  |
-| ✅   | `analyze-stmt`              | `ANALYZE my_table;`             |                  |
-|      | `attach-stmt`               |                                 |                  |
-| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`   |                  |
-| ✅   | `commit-stmt`               | `END TRANSACTION;`              |                  |
-|      | `create-index-stmt`         |                                 |                  |
-|      | `create-table-stmt`         |                                 |                  |
-|      | `create-trigger-stmt`       |                                 |                  |
-|      | `create-view-stmt`          |                                 |                  |
-|      | `create-virtual-table-stmt` |                                 |                  |
-|      | `delete-stmt`               |                                 |                  |
-|      | `delete-stmt-limited`       |                                 |                  |
-| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`   |                  |
-| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`          |                  |
-| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`          |                  |
-| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`      |                  |
-| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`            |                  |
-|      | `insert-stmt`               |                                 |                  |
-|      | `pragma-stmt`               |                                 | sqlite specific  |
-|      | `reindex-stmt`              |                                 |                  |
-|      | `release-stmt`              |                                 |                  |
-| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;` |                  |
-|      | `savepoint-stmt`            |                                 |                  |
-|      | `select-stmt`               |                                 |                  |
-|      | `update-stmt`               |                                 |                  |
-|      | `update-stmt-limited`       |                                 |                  |
-| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`     |                  |
+| done | `sqlite`-syntax name        | sql example                          | non-standard sql |
+| ---- | --------------------------- | ------------------------------------ | ---------------- |
+| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                |                  |
+|      | `alter-table-stmt`          |                                      |                  |
+| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                  |                  |
+|      | `attach-stmt`               |                                      |                  |
+| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`        |                  |
+| ✅   | `commit-stmt`               | `END TRANSACTION;`                   |                  |
+|      | `create-index-stmt`         |                                      |                  |
+|      | `create-table-stmt`         |                                      |                  |
+|      | `create-trigger-stmt`       |                                      |                  |
+|      | `create-view-stmt`          |                                      |                  |
+|      | `create-virtual-table-stmt` |                                      |                  |
+|      | `delete-stmt`               |                                      |                  |
+|      | `delete-stmt-limited`       |                                      |                  |
+| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`        |                  |
+| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`               |                  |
+| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`               |                  |
+| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`           |                  |
+| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                 |                  |
+|      | `insert-stmt`               |                                      |                  |
+|      | `pragma-stmt`               |                                      | sqlite specific  |
+|      | `reindex-stmt`              |                                      |                  |
+| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint` |                  |
+| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`      |                  |
+| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`         |                  |
+|      | `select-stmt`               |                                      |                  |
+|      | `update-stmt`               |                                      |                  |
+|      | `update-stmt-limited`       |                                      |                  |
+| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`          |                  |
 
 ## Installation
 
@@ -142,6 +142,7 @@ Options:
           - no-content:                Source file is empty
           - no-statements:             Source file is not empty but holds no statements
           - unimplemented:             Source file contains constructs sqleibniz does not yet understand
+          - unknown-keyword:           Source file contains an unknown keyword
           - bad-sqleibniz-instruction: Source file contains invalid sqleibniz instruction
           - unterminated-string:       Source file contains an unterminated string
           - unknown-character:         The source file contains an unknown character
@@ -151,7 +152,7 @@ Options:
           - semicolon:                 The source file is missing a semicolon
 
   -h, --help
-          Print help (see a summary with '-h')
+          Print help (see a summary with '-h'
 ```
 
 ### Configuration
@@ -162,9 +163,10 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
 [leibniz.toml](./leibniz.toml) for said example:
 
 ```toml
-# this is an example file, consult: https://toml.io/en/ and src/rules.rs for
-# documentation
+# this is an example file, consult: https://toml.io/en/ for syntax help and
+# src/rules.rs::Config for all available options
 [disabled]
+    # see sqleibniz --help for all available rules
     rules = [
         # by default, sqleibniz specific errors are disabled:
         "NoContent", # source file is empty
@@ -173,6 +175,7 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
         "BadSqleibnizInstruction", # source file contains a bad sqleibniz instruction
 
         # ignoring sqlite specific diagnostics:
+        # "UnknownKeyword", # an unknown keyword was encountered
         # "UnterminatedString", # a not closed string was found
         # "UnknownCharacter", # an unknown character was found
         # "InvalidNumericLiteral", # an invalid numeric literal was found
@@ -180,6 +183,7 @@ Consult [src/rules.rs](./src/rules.rs) for configuration documentation and
         # "Syntax", # a structure with incorrect syntax was found
         # "Semicolon", # a semicolon is missing
     ]
+
 ```
 
 ### sqleibniz instructions
@@ -248,7 +252,7 @@ multiple lines.
 
 ## Contribution
 
-Contributions are always welcome <3
+Contributions are always welcome <3, but remember to test all features you contribute.
 
 ### Local Dev env
 

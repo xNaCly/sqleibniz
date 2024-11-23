@@ -264,6 +264,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            Type::Keyword(Keyword::RELEASE) => self.release_stmt(),
             Type::Keyword(Keyword::SAVEPOINT) => self.savepoint_stmt(),
             Type::Keyword(Keyword::DROP) => self.drop_stmt(),
             Type::Keyword(Keyword::ANALYZE) => self.analyse_stmt(),
@@ -356,6 +357,41 @@ impl<'a> Parser<'a> {
 
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
+
+    /// https://www.sqlite.org/syntax/release-stmt.html
+    fn release_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        let mut r = nodes::Release {
+            t: self.cur()?.clone(),
+            savepoint_name: String::new(),
+        };
+        self.advance();
+
+        if self.is(Type::Keyword(Keyword::SAVEPOINT)) {
+            self.advance();
+        }
+
+        if let Type::Ident(savepoint) = &self.cur()?.ttype {
+            r.savepoint_name = savepoint.clone();
+            self.advance();
+        } else {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!(
+                    "Expected Ident(<savepoint-name>), got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/syntax/release-stmt.html");
+            self.errors.push(err);
+            self.advance();
+            return None;
+        }
+
+        self.expect_end("https://www.sqlite.org/syntax/release-stmt.html");
+        some_box!(r)
+    }
 
     /// https://www.sqlite.org/syntax/savepoint-stmt.html
     fn savepoint_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {

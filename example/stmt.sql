@@ -66,3 +66,7 @@ DROP VIEW IF EXISTS schema_name.view_name;
 
 -- https://www.sqlite.org/lang_savepoint.html
 SAVEPOINT savepoint_name;
+
+-- https://www.sqlite.org/syntax/release-stmt.html
+RELEASE savepoint_name;
+RELEASE SAVEPOINT savepoint_name;
