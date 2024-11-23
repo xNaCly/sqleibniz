@@ -82,3 +82,8 @@ node!(
     ttype: Keyword,
     argument: String
 );
+node!(
+    Savepoint,
+    "Savepoint stmt, see: https://www.sqlite.org/lang_savepoint.html",
+    savepoint_name: String
+);

@@ -138,6 +138,12 @@ EXPLAIN VACUUM;
         drop_view_view_name:r"DROP VIEW view_name;"=vec![Type::Keyword(Keyword::DROP)],
         drop_view_if_exists_schema_name_view_name:r"DROP VIEW IF EXISTS schema_name.view_name;"=vec![Type::Keyword(Keyword::DROP)]
     }
+
+    test_group_pass_assert! {
+        savepoint_stmt,
+
+        savepoint_savepoint_name:r"SAVEPOINT savepoint_name;"=vec![Type::Keyword(Keyword::SAVEPOINT)]
+    }
 }
 
 #[cfg(test)]
@@ -219,6 +225,7 @@ mod should_fail {
         detach_database_no_schema_name:r"DETACH DATABASE;",
         detach_schema_literal_instead_of_name:r"DETACH 'this string should not be here';"
     }
+
     test_group_fail! {
         drop_stmt,
 
@@ -235,5 +242,13 @@ mod should_fail {
         drop_table_no_table_name:r"DROP TABLE;",
         drop_trigger_no_trigger_name:r"DROP TRIGGER;",
         drop_view_no_view_name:r"DROP VIEW;"
+    }
+
+    test_group_fail! {
+        savepoint_stmt,
+
+        savepoint_savepoint_name_no_semicolon:r"SAVEPOINT savepoint_name",
+
+        savepoint_no_savepoint_name:r"SAVEPOINT;"
     }
 }

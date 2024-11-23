@@ -264,6 +264,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            Type::Keyword(Keyword::SAVEPOINT) => self.savepoint_stmt(),
             Type::Keyword(Keyword::DROP) => self.drop_stmt(),
             Type::Keyword(Keyword::ANALYZE) => self.analyse_stmt(),
             Type::Keyword(Keyword::DETACH) => self.detach_stmt(),
@@ -356,6 +357,35 @@ impl<'a> Parser<'a> {
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
 
+    /// https://www.sqlite.org/syntax/savepoint-stmt.html
+    fn savepoint_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        let mut s = nodes::Savepoint {
+            t: self.cur()?.clone(),
+            savepoint_name: String::new(),
+        };
+        self.advance();
+        if let Type::Ident(ident) = &self.cur()?.ttype {
+            s.savepoint_name = ident.clone();
+            self.advance();
+        } else {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!(
+                    "Expected Ident(<savepoint-name>), got {:?}",
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/syntax/savepoint-stmt.html");
+            self.errors.push(err);
+            self.advance();
+            return None;
+        }
+        self.expect_end("https://www.sqlite.org/lang_savepoint.html");
+        some_box!(s)
+    }
+
     /// https://www.sqlite.org/lang_dropindex.html
     /// https://www.sqlite.org/lang_droptable.html
     /// https://www.sqlite.org/lang_droptrigger.html
@@ -406,6 +436,7 @@ impl<'a> Parser<'a> {
             self.consume(Type::Keyword(Keyword::EXISTS));
             drop.if_exists = true;
         }
+
         if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
             // table/index/view/trigger of a schema_name
             drop.argument.push_str(&schema_name);
