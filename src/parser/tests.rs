@@ -219,4 +219,21 @@ mod should_fail {
         detach_database_no_schema_name:r"DETACH DATABASE;",
         detach_schema_literal_instead_of_name:r"DETACH 'this string should not be here';"
     }
+    test_group_fail! {
+        drop_stmt,
+
+        drop_index_index_name_no_semicolon:r"DROP INDEX index_name",
+        drop_index_if_exists_schema_name_index_name_no_semicolon:r"DROP INDEX IF EXISTS schema_name.index_name",
+        drop_table_table_name_no_semicolon:r"DROP TABLE table_name",
+        drop_table_if_exists_schema_name_table_name_no_semicolon:r"DROP TABLE IF EXISTS schema_name.table_name",
+        drop_trigger_trigger_name_no_semicolon:r"DROP TRIGGER trigger_name",
+        drop_trigger_if_exists_schema_name_trigger_name_no_semicolon:r"DROP TRIGGER IF EXISTS schema_name.trigger_name",
+        drop_view_view_name_no_semicolon:r"DROP VIEW view_name",
+        drop_view_if_exists_schema_name_view_name_no_semicolon:r"DROP VIEW IF EXISTS schema_name.view_name",
+
+        drop_index_no_index_name:r"DROP INDEX;",
+        drop_table_no_table_name:r"DROP TABLE;",
+        drop_trigger_no_trigger_name:r"DROP TRIGGER;",
+        drop_view_no_view_name:r"DROP VIEW;"
+    }
 }

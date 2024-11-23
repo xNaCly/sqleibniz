@@ -427,12 +427,25 @@ impl<'a> Parser<'a> {
                         self.cur()?,
                         Rule::Syntax,
                     );
-                    err.doc_url = Some("https://www.sqlite.org/lang.html");
+                    err.doc_url = Some("https://www.sqlite.org/lang_dropview.html https://www.sqlite.org/lang_droptrigger.html https://www.sqlite.org/lang_droptable.html https://www.sqlite.org/lang_dropindex.html");
                     self.advance();
                     self.errors.push(err);
                 }
             }
             self.advance();
+        } else {
+            let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "DROP requires Ident(<index_or_trigger_or_table_or_view>) or Ident(<schema_name>).Ident(<index_or_trigger_or_table_or_view>), got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+            err.doc_url = Some("https://www.sqlite.org/lang_dropview.html https://www.sqlite.org/lang_droptrigger.html https://www.sqlite.org/lang_droptable.html https://www.sqlite.org/lang_dropindex.html");
+            self.errors.push(err);
+            return None;
         }
 
         detrace!(self.tracer);
