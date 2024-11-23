@@ -21,7 +21,14 @@ pub fn distance(a: &[u8], b: &[u8]) -> usize {
             a.get(1..).unwrap_or_default(),
             b.get(1..).unwrap_or_default(),
         );
-        [first, second, third].iter().min().map_or(0, |min| 1 + min)
+        let mut min = first;
+        if min > second {
+            min = second
+        }
+        if min > third {
+            min = third
+        }
+        1 + min
     }
 }
 
