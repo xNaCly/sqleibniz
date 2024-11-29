@@ -264,6 +264,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            // Type::Keyword(Keyword::ATTACH) => self.attach_stmt(),
             Type::Keyword(Keyword::RELEASE) => self.release_stmt(),
             Type::Keyword(Keyword::SAVEPOINT) => self.savepoint_stmt(),
             Type::Keyword(Keyword::DROP) => self.drop_stmt(),
@@ -357,6 +358,41 @@ impl<'a> Parser<'a> {
 
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
+
+    /// https://www.sqlite.org/syntax/attach-stmt.html
+    fn attach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        let mut a = nodes::Attach {
+            t: self.cur()?.clone(),
+            schema_name: String::new(),
+        };
+        self.advance();
+
+        if self.is(Type::Keyword(Keyword::DATABASE)) {
+            self.advance();
+        }
+
+        // TODO: expr here
+
+        self.consume(Type::Keyword(Keyword::AS));
+
+        if let Type::Ident(schema_name) = &self.cur()?.ttype {
+            a.schema_name = schema_name.to_string();
+            self.advance();
+        } else {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!("Expected Ident(<schema_name>), got {:?}", self.cur()?.ttype),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some("https://www.sqlite.org/lang_attach.html");
+            self.errors.push(err);
+            self.advance();
+        }
+
+        self.expect_end("https://www.sqlite.org/lang_attach.html");
+        some_box!(a)
+    }
 
     /// https://www.sqlite.org/syntax/release-stmt.html
     fn release_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {

@@ -94,3 +94,9 @@ node!(
     "Release stmt, see: https://www.sqlite.org/lang_savepoint.html",
     savepoint_name: String
 );
+
+node!(
+    Attach,
+    "Attach stmt, see: https://www.sqlite.org/lang_attach.html",
+    schema_name: String
+);
