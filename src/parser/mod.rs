@@ -199,6 +199,33 @@ impl<'a> Parser<'a> {
         None
     }
 
+    fn consume_ident(
+        &mut self,
+        doc: &'static str,
+        expected_ident_name: &'static str,
+    ) -> Option<String> {
+        if let Type::Ident(ident) = &self.cur()?.ttype {
+            let i = ident.clone();
+            self.advance();
+            Some(i)
+        } else {
+            let mut err = self.err(
+                "Unexpected Token",
+                &format!(
+                    "Expected Ident(<{}>), got {:?}",
+                    expected_ident_name,
+                    self.cur()?.ttype
+                ),
+                self.cur()?,
+                Rule::Syntax,
+            );
+            err.doc_url = Some(doc);
+            self.errors.push(err);
+            self.skip_until_semicolon_or_eof();
+            None
+        }
+    }
+
     pub fn parse(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
         trace!(self.tracer, "parse", self.cur());
         let r = self.sql_stmt_list();
@@ -375,20 +402,8 @@ impl<'a> Parser<'a> {
 
         self.consume(Type::Keyword(Keyword::AS));
 
-        if let Type::Ident(schema_name) = &self.cur()?.ttype {
-            a.schema_name = schema_name.to_string();
-            self.advance();
-        } else {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!("Expected Ident(<schema_name>), got {:?}", self.cur()?.ttype),
-                self.cur()?,
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/lang_attach.html");
-            self.errors.push(err);
-            self.advance();
-        }
+        a.schema_name =
+            self.consume_ident("https://www.sqlite.org/lang_attach.html", "schema_name")?;
 
         self.expect_end("https://www.sqlite.org/lang_attach.html");
         some_box!(a)
@@ -406,24 +421,10 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
-        if let Type::Ident(savepoint) = &self.cur()?.ttype {
-            r.savepoint_name = savepoint.clone();
-            self.advance();
-        } else {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!(
-                    "Expected Ident(<savepoint-name>), got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/syntax/release-stmt.html");
-            self.errors.push(err);
-            self.advance();
-            return None;
-        }
+        r.savepoint_name = self.consume_ident(
+            "https://www.sqlite.org/syntax/release-stmt.html",
+            "savepoint_name",
+        )?;
 
         self.expect_end("https://www.sqlite.org/syntax/release-stmt.html");
         some_box!(r)
@@ -436,24 +437,10 @@ impl<'a> Parser<'a> {
             savepoint_name: String::new(),
         };
         self.advance();
-        if let Type::Ident(ident) = &self.cur()?.ttype {
-            s.savepoint_name = ident.clone();
-            self.advance();
-        } else {
-            let mut err = self.err(
-                "Unexpected Token",
-                &format!(
-                    "Expected Ident(<savepoint-name>), got {:?}",
-                    self.cur()?.ttype
-                ),
-                self.cur()?,
-                Rule::Syntax,
-            );
-            err.doc_url = Some("https://www.sqlite.org/syntax/savepoint-stmt.html");
-            self.errors.push(err);
-            self.advance();
-            return None;
-        }
+        s.savepoint_name = self.consume_ident(
+            "https://www.sqlite.org/syntax/savepoint-stmt.html",
+            "savepoint_name",
+        )?;
         self.expect_end("https://www.sqlite.org/lang_savepoint.html");
         some_box!(s)
     }
