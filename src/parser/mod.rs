@@ -292,6 +292,7 @@ impl<'a> Parser<'a> {
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
             // Type::Keyword(Keyword::ATTACH) => self.attach_stmt(),
+            Type::Keyword(Keyword::REINDEX) => self.reindex_stmt(),
             Type::Keyword(Keyword::RELEASE) => self.release_stmt(),
             Type::Keyword(Keyword::SAVEPOINT) => self.savepoint_stmt(),
             Type::Keyword(Keyword::DROP) => self.drop_stmt(),
@@ -386,8 +387,47 @@ impl<'a> Parser<'a> {
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
 
+    /// https://www.sqlite.org/syntax/reindex-stmt.html
+    fn reindex_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "reindex_stmt", self.cur());
+        let mut r = nodes::Reindex {
+            t: self.cur()?.clone(),
+            collation_or_schema: None,
+        };
+        self.advance();
+
+        // REINDEX has a path with no further nodes
+        if self.is(Type::Semicolon) {
+            return some_box!(r);
+        }
+
+        // either collation_name, schema_name of schema_name.table_or_index_name or table_or_index_name
+        let mut collation_or_schema_or_table_or_view = self.consume_ident(
+            "https://www.sqlite.org/syntax/reindex-stmt.html",
+            "collation_or_schema_or_table_or_index",
+        )?;
+
+        // branch for schema_name.table_or_index_name
+        if self.is(Type::Dot) {
+            collation_or_schema_or_table_or_view.push('.');
+            self.advance();
+            collation_or_schema_or_table_or_view.push_str(&self.consume_ident(
+                "https://www.sqlite.org/syntax/reindex-stmt.html",
+                "table_or_index_name",
+            )?);
+        }
+
+        r.collation_or_schema = Some(collation_or_schema_or_table_or_view);
+
+        self.expect_end("https://www.sqlite.org/syntax/reindex-stmt.html");
+
+        detrace!(self.tracer);
+        some_box!(r)
+    }
+
     /// https://www.sqlite.org/syntax/attach-stmt.html
     fn attach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "attach_stmt", self.cur());
         let mut a = nodes::Attach {
             t: self.cur()?.clone(),
             schema_name: String::new(),
@@ -406,11 +446,13 @@ impl<'a> Parser<'a> {
             self.consume_ident("https://www.sqlite.org/lang_attach.html", "schema_name")?;
 
         self.expect_end("https://www.sqlite.org/lang_attach.html");
+        detrace!(self.tracer);
         some_box!(a)
     }
 
     /// https://www.sqlite.org/syntax/release-stmt.html
     fn release_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "release_stmt", self.cur());
         let mut r = nodes::Release {
             t: self.cur()?.clone(),
             savepoint_name: String::new(),
@@ -427,11 +469,13 @@ impl<'a> Parser<'a> {
         )?;
 
         self.expect_end("https://www.sqlite.org/syntax/release-stmt.html");
+        detrace!(self.tracer);
         some_box!(r)
     }
 
     /// https://www.sqlite.org/syntax/savepoint-stmt.html
     fn savepoint_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "savepoint_stmt ", self.cur());
         let mut s = nodes::Savepoint {
             t: self.cur()?.clone(),
             savepoint_name: String::new(),
@@ -442,6 +486,8 @@ impl<'a> Parser<'a> {
             "savepoint_name",
         )?;
         self.expect_end("https://www.sqlite.org/lang_savepoint.html");
+
+        detrace!(self.tracer);
         some_box!(s)
     }
 

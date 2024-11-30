@@ -70,3 +70,7 @@ SAVEPOINT savepoint_name;
 -- https://www.sqlite.org/syntax/release-stmt.html
 RELEASE savepoint_name;
 RELEASE SAVEPOINT savepoint_name;
+
+REINDEX;
+REINDEX collation_name;
+REINDEX schema_name.table_name;

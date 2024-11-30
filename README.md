@@ -62,7 +62,7 @@ dynamic correctness. See below for a list of currently implemented features.
 | ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                 |                  |
 |      | `insert-stmt`               |                                      |                  |
 |      | `pragma-stmt`               |                                      | sqlite specific  |
-|      | `reindex-stmt`              |                                      |                  |
+| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`         |                  |
 | ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint` |                  |
 | ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`      |                  |
 | ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`         |                  |

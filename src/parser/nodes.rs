@@ -100,3 +100,9 @@ node!(
     "Attach stmt, see: https://www.sqlite.org/lang_attach.html",
     schema_name: String
 );
+
+node!(
+    Reindex,
+    "Reindex stmt, see: https://www.sqlite.org/lang_reindex.html",
+    collation_or_schema: Option<String>
+);

@@ -151,6 +151,14 @@ EXPLAIN VACUUM;
         release_savepoint_savepoint_name:r"RELEASE SAVEPOINT savepoint_name;"=vec![Type::Keyword(Keyword::RELEASE)],
         release_savepoint_name:r"RELEASE savepoint_name;"=vec![Type::Keyword(Keyword::RELEASE)]
     }
+
+    test_group_pass_assert! {
+        reindex_stmt,
+
+        reindex:r"REINDEX;"=vec![Type::Keyword(Keyword::REINDEX)],
+        reindex_collation_name:r"REINDEX collation_name;"=vec![Type::Keyword(Keyword::REINDEX)],
+        reindex_schema_name_table_name:r"REINDEX schema_name.table_name;"=vec![Type::Keyword(Keyword::REINDEX)]
+    }
 }
 
 #[cfg(test)]
@@ -267,5 +275,16 @@ mod should_fail {
 
         release_savepoint_no_savepoint_name:r"RELEASE SAVEPOINT;",
         release_savepoint_no_name:r"RELEASE;"
+    }
+
+    test_group_fail! {
+        reindex_stmt,
+
+        reindex_no_semicolon:r"REINDEX",
+        reindex_collation_name_no_semicolon:r"REINDEX collation_name",
+        reindex_schema_name_table_name_no_semicolon:r"REINDEX schema_name.table_name",
+
+        reindex_schema_name_no_table_or_index:r"REINDEX schema_name.;",
+        reindex_collation_name_literal:r"REINDEX 25;"
     }
 }
