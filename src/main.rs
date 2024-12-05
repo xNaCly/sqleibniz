@@ -4,7 +4,8 @@ use std::{fs, process::exit, vec};
 use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
-use rules::{Config, Disabled, Rule};
+use mlua::{Lua, LuaSerdeExt};
+use rules::{Config, Rule};
 
 /// error does formatting and highlighting for errors
 mod error;
@@ -26,7 +27,7 @@ mod types;
 #[derive(clap::Parser)]
 #[command(about, long_about=None)]
 struct Cli {
-    /// instruct sqleibniz to ignore the configuration, if found
+    /// instruct sqleibniz to ignore the configuration, if specified
     #[arg(short, long)]
     ignore_config: bool,
 
@@ -34,7 +35,7 @@ struct Cli {
     paths: Vec<String>,
 
     /// path to the configuration
-    #[arg(short = 'c', long, default_value = "leibniz.toml")]
+    #[arg(short = 'c', long, default_value = "leibniz.lua")]
     config: String,
 
     /// disable stdout/stderr output
@@ -64,20 +65,36 @@ fn main() {
     }
 
     let mut config = Config {
-        disabled: Disabled { rules: vec![] },
+        disabled_rules: vec![],
     };
 
     if !args.ignore_config {
         match fs::read_to_string(&args.config) {
-            Ok(config_str) => match toml::from_str(&config_str) {
-                Ok(conf) => config = conf,
-                Err(err) => warn(&format!(
-                    "Failed to parse configuration file '{}': {}",
-                    args.config, err
-                )),
-            },
+            Ok(config_str) => {
+                let lua = Lua::new();
+                let globals = lua.globals();
+                let leibniz = lua
+                    .to_value(&Config {
+                        disabled_rules: vec![],
+                    })
+                    .expect("failed to serialize default configuration");
+                globals
+                    .set("leibniz", leibniz)
+                    .expect("failed to serialize default configuration");
+                match lua.load(config_str).set_name(&args.config).exec() {
+                    Ok(()) => {
+                        if let Ok(raw_conf) = globals.get::<mlua::Value>("leibniz") {
+                            match lua.from_value::<Config>(raw_conf) {
+                                Ok(conf) => config.disabled_rules = conf.disabled_rules,
+                                Err(err) => println!("{err}"),
+                            }
+                        }
+                    }
+                    Err(err) => println!("{err}"),
+                }
+            }
             Err(err) => warn(&format!(
-                "Failed to read configuration file '{}': {}",
+                "Failed to execute configuration file '{}': {}",
                 args.config, err
             )),
         }
@@ -85,12 +102,12 @@ fn main() {
 
     if let Some(rules) = args.disable {
         let mut p = rules.clone();
-        config.disabled.rules.append(&mut p);
+        config.disabled_rules.append(&mut p);
     }
 
-    if !config.disabled.rules.is_empty() && !args.silent {
+    if !config.disabled_rules.is_empty() && !args.silent {
         warn("Ignoring the following diagnostics, as specified:");
-        for rule in &config.disabled.rules {
+        for rule in &config.disabled_rules {
             print_str_colored(" -> ", error::Color::Blue);
             println!("{}", rule.name())
         }
@@ -132,7 +149,7 @@ fn main() {
             .iter()
             .flatten()
             .filter(|e| {
-                if config.disabled.rules.contains(&e.rule) {
+                if config.disabled_rules.contains(&e.rule) {
                     ignored_errors += 1;
                     false
                 } else {

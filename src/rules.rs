@@ -1,6 +1,7 @@
-use serde::Deserialize;
+use mlua::UserData;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 /// Rule is attached to each error and can be supplied to sqleibniz via the Config structure serialized in ./leibniz.toml
 #[derive(clap::ValueEnum)]
 pub enum Rule {
@@ -30,18 +31,15 @@ pub enum Rule {
     Semicolon,
 }
 
-#[derive(Deserialize, Debug)]
-/// Allows for disabling diagnostics and turning off behaviours
-pub struct Disabled {
-    pub rules: Vec<Rule>,
-}
-
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 /// Configuration is expected to be at ./leibniz.toml - its existence is not necessary for the program invocation
 pub struct Config {
     /// holds the rules that the user wants to not see errors for.
-    pub disabled: Disabled,
+    pub disabled_rules: Vec<Rule>,
 }
+
+impl UserData for Config {}
+impl UserData for Rule {}
 
 impl Rule {
     pub fn name(&self) -> &str {

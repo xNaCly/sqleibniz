@@ -10,5 +10,6 @@ trace_parser = []
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
+mlua = {version = "0.10.2", features = ["lua54", "vendored", "serialize"]}
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8.19"
