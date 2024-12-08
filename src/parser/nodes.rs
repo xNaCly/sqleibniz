@@ -20,6 +20,7 @@ macro_rules! node {
         pub struct $node_name {
             /// predefined for all structures defined with the node! macro, holds the token of the ast node
             pub t: Token,
+            pub children: Option<Vec<Box<dyn Node>>>,
             $(
                 pub $field_name: $field_type,
             )*
@@ -28,21 +29,39 @@ macro_rules! node {
             fn token(&self) -> &Token {
                 &self.t
             }
+
+            fn display(&self, indent: usize) {
+                print!("{}- {}", " ".repeat(indent), stringify!($node_name));
+                $(
+                    print!(" [{}={:?}] ", stringify!($field_name), self.$field_name);
+                )*
+                println!();
+                if let Some(children) = &self.children {
+                    for child in children {
+                        child.display(indent+1)
+                    }
+                }
+            }
         }
     };
 }
 
 pub trait Node: std::fmt::Debug {
     fn token(&self) -> &Token;
+    fn display(&self, indent: usize);
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
     // trait should enforce a analyse(&self) -> Vec<Error> function.
 }
+
 node!(
     Literal,
     "holds all literal types, such as strings, numbers, etc.",
 );
 
-node!(Explain,"Explain stmt, see: https://www.sqlite.org/lang_explain.html", child: Option<Box<dyn Node>>);
+node!(
+    Explain,
+    "Explain stmt, see: https://www.sqlite.org/lang_explain.html",
+);
 
 node!(Vacuum,"Vacuum stmt, see: https://www.sqlite.org/lang_vacuum.html", schema_name: Option<Token>, filename: Option<Token>);
 

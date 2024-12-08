@@ -262,34 +262,46 @@ cargo run example/*
 
 ### Debugging the parser
 
-Run sqleibniz via cargo with `--features trace_parser` to enable the log of
-each `Parser.<stmt_type>_stmt` function. This allows for a deeper insight for
-deadlocks etc.
+Run sqleibniz via cargo with `--features trace` to enable the log of each
+`Parser.<stmt_type>_stmt` function as well as the resulting ast nodes. This
+allows for a deeper insight for deadlocks etc.
 
 ```sql
 EXPLAIN VACUUM;
-EXPLAIN QUERY PLAN VACUUM;
+EXPLAIN QUERY PLAN VACUUM my_big_schema INTO 'repacked.db';
 ```
 
-For instance, parsing the above SQL results in a nice tree:
+For instance, parsing the above SQL results in the generation and print of a
+parser callstack and the resulting AST:
 
 ```text
-sqleibniz master :: cargo run --features trace_parser -- -i test.sql
+sqleibniz master M :: cargo run --features trace -- test.sql
    Compiling sqleibniz v0.1.0 (/home/magr6/programming/sqleibniz)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.83s
-     Running `target/debug/sqleibniz -i test.sql`
- ↳ Parser::parse() 	with Some(Keyword(EXPLAIN))
-  ↳ Parser::sql_stmt_list() 	with Some(Keyword(EXPLAIN))
-   ↳ Parser::sql_stmt_prefix() 	with Some(Keyword(EXPLAIN))
-    ↳ Parser::sql_stmt() 	with Some(Keyword(VACUUM))
-     ↳ Parser::vacuum_stmt() 	with Some(Keyword(VACUUM))
-    ↳ Parser::sql_stmt_prefix() 	with Some(Keyword(EXPLAIN))
-     ↳ Parser::sql_stmt() 	with Some(Keyword(VACUUM))
-      ↳ Parser::vacuum_stmt() 	with Some(Keyword(VACUUM))
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.27s
+     Running `target/debug/sqleibniz test.sql`
+warn: Ignoring the following diagnostics, as specified:
+ -> NoContent
+ -> NoStatements
+ -> Unimplemented
+ -> BadSqleibnizInstruction
+============================== CALL STACK ==============================
+ ↳ Parser::parse(Some(Keyword(EXPLAIN)))
+  ↳ Parser::sql_stmt_list(Some(Keyword(EXPLAIN)))
+   ↳ Parser::sql_stmt_prefix(Some(Keyword(EXPLAIN)))
+    ↳ Parser::sql_stmt(Some(Keyword(VACUUM)))
+     ↳ Parser::vacuum_stmt(Some(Keyword(VACUUM)))
+    ↳ Parser::sql_stmt_prefix(Some(Keyword(EXPLAIN)))
+     ↳ Parser::sql_stmt(Some(Keyword(VACUUM)))
+      ↳ Parser::vacuum_stmt(Some(Keyword(VACUUM)))
+================================= AST ==================================
+- Explain
+ - Vacuum [schema_name=None]  [filename=None]
+- Explain
+ - Vacuum [schema_name=Some(Token { ttype: Ident("my_big_schema"), start: 26, end: 39, line: 1 })]  [filename=Some(Token { ttype: String("repacked.db"), start: 45, end: 58, line: 1 })]
 =============================== Summary ================================
 [+] test.sql:
     0 Error(s) detected
     0 Error(s) ignored
 
-=> 1/1 Files verified successfully, 0 verification failed.
+=> 1/1 Files verified successfully, 0 verification failed
 ```

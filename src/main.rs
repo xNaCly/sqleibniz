@@ -140,8 +140,19 @@ fn main() {
         errors.push(lexer.errors);
 
         if !toks.is_empty() {
+            #[cfg(feature = "trace")]
+            error::print_str_colored(&format!("{:=^72}\n", " CALL STACK "), error::Color::Blue);
             let mut parser = parser::Parser::new(toks, file.name.as_str());
-            let _ = parser.parse();
+            let ast = parser.parse();
+            #[cfg(feature = "trace")]
+            {
+                error::print_str_colored(&format!("{:=^72}\n", " AST "), error::Color::Blue);
+                for node in ast {
+                    if let Some(node) = node {
+                        node.display(0);
+                    }
+                }
+            }
             errors.push(parser.errors);
         }
 

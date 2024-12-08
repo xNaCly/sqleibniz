@@ -1,4 +1,4 @@
-#[cfg(feature = "trace_parser")]
+#[cfg(feature = "trace")]
 use tracer::Tracer;
 
 use crate::{
@@ -11,18 +11,18 @@ mod nodes;
 mod tests;
 mod tracer;
 
-/// prints a parser function call trace if #[cfg(feature = "trace_parser")]
+/// prints a parser function call trace if #[cfg(feature = "trace")]
 macro_rules! trace {
     ($tracer:expr, $fn:literal, $tok:expr) => {
-        #[cfg(feature = "trace_parser")]
+        #[cfg(feature = "trace")]
         $tracer.call($fn, $tok.map(|t| t.ttype.clone()));
     };
 }
 
-/// restores trace indent if #[cfg(feature = "trace_parser")]
+/// restores trace indent if #[cfg(feature = "trace")]
 macro_rules! detrace {
     ($tracer:expr) => {
-        #[cfg(feature = "trace_parser")]
+        #[cfg(feature = "trace")]
         {
             $tracer.indent -= 1;
         }
@@ -34,7 +34,7 @@ pub struct Parser<'a> {
     tokens: Vec<Token>,
     name: &'a str,
     pub errors: Vec<Error>,
-    #[cfg(feature = "trace_parser")]
+    #[cfg(feature = "trace")]
     tracer: tracer::Tracer,
 }
 
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
             name,
             tokens,
             errors: vec![],
-            #[cfg(feature = "trace_parser")]
+            #[cfg(feature = "trace")]
             tracer: Tracer::new(),
         }
     }
@@ -265,7 +265,7 @@ impl<'a> Parser<'a> {
             Type::Keyword(Keyword::EXPLAIN) => {
                 let mut e = nodes::Explain {
                     t: self.cur()?.clone(),
-                    child: None,
+                    children: None,
                 };
                 // skip EXPLAIN
                 self.advance();
@@ -277,7 +277,7 @@ impl<'a> Parser<'a> {
                 }
 
                 // else path is EXPLAIN->*_stmt
-                e.child = self.sql_stmt();
+                e.children = self.sql_stmt().map(|x| vec![x]);
                 some_box!(e)
             }
             _ => self.sql_stmt(),
@@ -393,6 +393,7 @@ impl<'a> Parser<'a> {
         let mut r = nodes::Reindex {
             t: self.cur()?.clone(),
             collation_or_schema: None,
+            children: None,
         };
         self.advance();
 
@@ -431,6 +432,7 @@ impl<'a> Parser<'a> {
         let mut a = nodes::Attach {
             t: self.cur()?.clone(),
             schema_name: String::new(),
+            children: None,
         };
         self.advance();
 
@@ -456,6 +458,7 @@ impl<'a> Parser<'a> {
         let mut r = nodes::Release {
             t: self.cur()?.clone(),
             savepoint_name: String::new(),
+            children: None,
         };
         self.advance();
 
@@ -479,6 +482,7 @@ impl<'a> Parser<'a> {
         let mut s = nodes::Savepoint {
             t: self.cur()?.clone(),
             savepoint_name: String::new(),
+            children: None,
         };
         self.advance();
         s.savepoint_name = self.consume_ident(
@@ -503,6 +507,7 @@ impl<'a> Parser<'a> {
             // dummy value
             ttype: Keyword::NULL,
             argument: String::new(),
+            children: None,
         };
         self.advance();
 
@@ -595,6 +600,7 @@ impl<'a> Parser<'a> {
             t: self.cur()?.clone(),
             schema_index_or_table_name: None,
             schema_with_table_or_index_name: None,
+            children: None,
         };
 
         self.advance();
@@ -658,7 +664,8 @@ impl<'a> Parser<'a> {
                 self.advance();
                 some_box!(nodes::Detach {
                     t,
-                    schema_name: schema_name.into()
+                    schema_name: schema_name.into(),
+                    children: None,
                 })
             } else {
                 let mut err = self.err(
@@ -685,6 +692,7 @@ impl<'a> Parser<'a> {
         let mut rollback = nodes::Rollback {
             t: self.cur()?.clone(),
             save_point: None,
+            children: None,
         };
         self.advance();
 
@@ -765,6 +773,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "commit_stmt", self.cur());
         let commit: Option<Box<dyn nodes::Node>> = some_box!(nodes::Commit {
             t: self.cur()?.clone(),
+            children: None,
         });
 
         // skip either COMMIT or END
@@ -802,6 +811,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "begin_stmt", self.cur());
         let begin: nodes::Begin = nodes::Begin {
             t: self.cur()?.clone(),
+            children: None,
         };
 
         // skip BEGIN
@@ -864,6 +874,7 @@ impl<'a> Parser<'a> {
             t: self.cur()?.clone(),
             schema_name: None,
             filename: None,
+            children: None,
         };
         self.consume(Type::Keyword(Keyword::VACUUM));
 
@@ -943,7 +954,10 @@ impl<'a> Parser<'a> {
             | Type::Keyword(Keyword::CURRENT_TIME)
             | Type::Keyword(Keyword::CURRENT_DATE)
             | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
-                let s: Option<Box<dyn nodes::Node>> = some_box!(nodes::Literal { t: cur.clone() });
+                let s: Option<Box<dyn nodes::Node>> = some_box!(nodes::Literal {
+                    t: cur.clone(),
+                    children: None,
+                });
                 // skipping over the current character
                 self.advance();
                 s

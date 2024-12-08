@@ -11,11 +11,6 @@ impl Tracer {
 
     pub fn call(&mut self, name: &str, tok: Option<Type>) {
         self.indent += 1;
-        println!(
-            "{}↳ Parser::{}() \t with {:?}",
-            " ".repeat(self.indent),
-            name,
-            tok
-        );
+        println!("{}↳ Parser::{}({:?})", " ".repeat(self.indent), name, tok);
     }
 }
