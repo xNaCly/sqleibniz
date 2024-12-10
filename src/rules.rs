@@ -32,10 +32,20 @@ pub enum Rule {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-/// Configuration is expected to be at ./leibniz.toml - its existence is not necessary for the program invocation
+/// Configuration is expected to be at ./leibniz.lua - its existence is not required for the program invocation
 pub struct Config {
     /// holds the rules that the user wants to not see errors for.
     pub disabled_rules: Vec<Rule>,
+    // TODO:
+    pub hooks: Option<Vec<Hook>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+/// sqleibniz allows for writing custom rules with lua
+pub struct Hook {
+    pub name: String,
+    pub node: Option<String>,
+    pub hook: Option<()>,
 }
 
 impl UserData for Config {}

@@ -66,6 +66,7 @@ fn main() {
 
     let mut config = Config {
         disabled_rules: vec![],
+        hooks: None,
     };
 
     if !args.ignore_config {
@@ -76,6 +77,7 @@ fn main() {
                 let leibniz = lua
                     .to_value(&Config {
                         disabled_rules: vec![],
+                        hooks: None,
                     })
                     .expect("failed to serialize default configuration");
                 globals
@@ -85,8 +87,8 @@ fn main() {
                     Ok(()) => {
                         if let Ok(raw_conf) = globals.get::<mlua::Value>("leibniz") {
                             match lua.from_value::<Config>(raw_conf) {
-                                Ok(conf) => config.disabled_rules = conf.disabled_rules,
-                                Err(err) => println!("{err}"),
+                                Ok(conf) => config = conf,
+                                Err(err) => println!("leibniz.lua: {err}"),
                             }
                         }
                     }
