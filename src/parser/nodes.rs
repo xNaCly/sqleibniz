@@ -30,6 +30,7 @@ macro_rules! node {
                 &self.t
             }
 
+            #[cfg(feature = "trace")]
             fn display(&self, indent: usize) {
                 print!("{}- {}", " ".repeat(indent), self.name());
                 $(
@@ -52,6 +53,7 @@ macro_rules! node {
 
 pub trait Node: std::fmt::Debug {
     fn token(&self) -> &Token;
+    #[cfg(feature = "trace")]
     fn display(&self, indent: usize);
     fn name(&self) -> &str;
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
