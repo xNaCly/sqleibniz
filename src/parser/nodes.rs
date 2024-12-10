@@ -2,17 +2,36 @@ use crate::types::{Keyword, Token};
 
 /// Generates a Node from the given input:
 ///
-///     node!(Literal,);
-///     // generates:
-///     #[derive(Debug)]
-///     pub struct Literal {
-///         pub t: Token,
-///     }
-///     impl Node for Literal {
-///         fn token(&self) -> &Token {
-///             &self.t
-///         }
-///     }
+///```
+///node!(
+///    Literal,
+///    "holds all literal types, such as strings, numbers, etc.",
+///);
+///#[derive(Debug)]
+///#[doc = "holds all literal types, such as strings, numbers, etc."]
+///pub struct Literal {
+///    #[doc = r" predefined for all structures defined with the node! macro, holds the token of the ast node"]
+///    pub t:Token,pub children:Option<Vec<Box<dyn Node>>>,
+///}
+///impl Node for Literal {
+///    fn token(&self) ->  &Token {
+///        &self.t
+///    }
+///    #[cfg(feature = "trace")]
+///    fn display(&self,indent:usize){
+///        print!("{}- {}"," ".repeat(indent),self.name());
+///        println!();
+///        if let Some(children) =  &self.children {
+///            for child in children {
+///                child.display(indent+1)
+///            }
+///        }
+///    }
+///    fn name(&self) ->  &str {
+///        stringify!(Literal)
+///    }
+///}
+///```
 macro_rules! node {
     ($node_name:ident,$documentation:literal,$($field_name:ident:$field_type:ty),*) => {
         #[derive(Debug)]
