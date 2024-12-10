@@ -31,7 +31,7 @@ macro_rules! node {
             }
 
             fn display(&self, indent: usize) {
-                print!("{}- {}", " ".repeat(indent), stringify!($node_name));
+                print!("{}- {}", " ".repeat(indent), self.name());
                 $(
                     print!(" [{}={:?}] ", stringify!($field_name), self.$field_name);
                 )*
@@ -42,6 +42,10 @@ macro_rules! node {
                     }
                 }
             }
+
+            fn name(&self) -> &str {
+                stringify!($node_name)
+            }
         }
     };
 }
@@ -49,6 +53,7 @@ macro_rules! node {
 pub trait Node: std::fmt::Debug {
     fn token(&self) -> &Token;
     fn display(&self, indent: usize);
+    fn name(&self) -> &str;
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
     // trait should enforce a analyse(&self) -> Vec<Error> function.
 }
