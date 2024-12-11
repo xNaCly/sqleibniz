@@ -1,6 +1,6 @@
 use std::{fs, io::BufRead, path::PathBuf};
 
-use crate::rules::Rule;
+use crate::types::rules::Rule;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImprovedLine {

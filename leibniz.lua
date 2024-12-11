@@ -32,11 +32,11 @@ leibniz = {
             -- The `node` argument holds the following fields:
             --
             --```
-            --node: {
-            -- kind: string,
-            -- text: string,
-            -- children: node[],
-            --}
+            --    node: {
+            --     kind: string,
+            --     text: string,
+            --     children: node[],
+            --    }
             --```
             --
             hook = function(node)

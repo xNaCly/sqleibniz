@@ -3,7 +3,7 @@ use tracer::Tracer;
 
 use crate::{
     error::{Error, ImprovedLine},
-    rules::Rule,
+    types::rules::Rule,
     types::{Keyword, Token, Type},
 };
 

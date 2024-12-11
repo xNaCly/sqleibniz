@@ -5,7 +5,8 @@ use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
 use mlua::Lua;
-use rules::{Config, Rule};
+use types::config::Config;
+use types::rules::Rule;
 
 /// error does formatting and highlighting for errors
 mod error;
@@ -18,8 +19,6 @@ mod lexer;
 mod lsp;
 /// parser converts the token stream into an abstract syntax tree
 mod parser;
-/// rules controls the error display and configuration
-mod rules;
 /// types holds all shared types between the above modules
 mod types;
 

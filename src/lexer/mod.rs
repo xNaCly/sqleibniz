@@ -1,8 +1,7 @@
 use std::f64;
 
 use crate::error::{self, Error, ImprovedLine};
-use crate::rules::Rule;
-use crate::types::{Keyword, Token, Type};
+use crate::types::{rules::Rule, Keyword, Token, Type};
 
 mod tests;
 
