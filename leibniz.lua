@@ -1,5 +1,3 @@
---- @diagnostic disable: lowercase-global
-
 -- this is an example configuration, consult: https://www.lua.org/manual/5.4/
 -- or https://learnxinyminutes.com/docs/lua/ for syntax help and
 -- src/rules.rs::Config for all available options
@@ -22,7 +20,6 @@ leibniz = {
         -- "Semicolon", -- a semicolon is missing
     },
     -- sqleibniz allows for writing custom rules with lua
-    -- https://github.com/mlua-rs/mlua/issues/426
     hooks = {
         {
             -- summarises the hooks content
@@ -36,20 +33,32 @@ leibniz = {
             --
             --```
             --node: {
-            -- type: string,
+            -- kind: string,
             -- text: string,
             -- children: node[],
             --}
             --```
             --
             hook = function(node)
-                if node.type == "ident" then
+                if node.kind == "ident" then
                     if string.match(node.text, "%u") then
                         -- returing an error passes the diagnostic to sqleibniz,
                         -- thus a pretty message with the name of the hook, the
                         -- node it occurs and the message passed to error() is
                         -- generated
                         error("All idents should be lowercase")
+                    end
+                end
+            end
+        },
+        {
+            name = "idents shouldn't be longer than 12 characters",
+            node = "literal",
+            hook = function(node)
+                local max_size = 12
+                if node.kind == "ident" then
+                    if string.len(node.text) >= max_size then
+                        error("idents shouldn't be longer than " .. max_size .. " characters")
                     end
                 end
             end

@@ -1,5 +1,7 @@
 use std::{collections::HashSet, fmt::Display};
 
+use mlua::IntoLua;
+
 /// https://sqlite.org/datatype3.html#storage_classes_and_datatypes
 #[derive(Debug)]
 pub enum SqliteStorageClass {
@@ -66,4 +68,20 @@ pub struct Context {
     pub tables: Vec<Table>,
     pub save_points: HashSet<String>,
     pub databases: HashSet<String>,
+}
+
+pub struct HookContext {
+    pub kind: String,
+    pub text: Option<String>,
+    pub children: Vec<HookContext>,
+}
+
+impl IntoLua for HookContext {
+    fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
+        let table = lua.create_table()?;
+        table.set("kind", self.kind)?;
+        table.set("text", self.text.unwrap_or_else(|| String::new()))?;
+        table.set("children", self.children)?;
+        lua.pack(table)
+    }
 }
