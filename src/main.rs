@@ -4,7 +4,7 @@ use std::{fs, process::exit, vec};
 use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
-use mlua::{Lua, LuaSerdeExt};
+use mlua::Lua;
 use rules::{Config, Rule};
 
 /// error does formatting and highlighting for errors
@@ -66,6 +66,7 @@ fn main() {
 
     let mut config = Config {
         disabled_rules: vec![],
+        hooks: None,
     };
 
     if !args.ignore_config {
@@ -73,20 +74,22 @@ fn main() {
             Ok(config_str) => {
                 let lua = Lua::new();
                 let globals = lua.globals();
-                let leibniz = lua
-                    .to_value(&Config {
-                        disabled_rules: vec![],
-                    })
-                    .expect("failed to serialize default configuration");
                 globals
-                    .set("leibniz", leibniz)
+                    .set(
+                        "leibniz",
+                        Config {
+                            disabled_rules: vec![],
+                            hooks: None,
+                        },
+                    )
                     .expect("failed to serialize default configuration");
                 match lua.load(config_str).set_name(&args.config).exec() {
                     Ok(()) => {
                         if let Ok(raw_conf) = globals.get::<mlua::Value>("leibniz") {
-                            match lua.from_value::<Config>(raw_conf) {
-                                Ok(conf) => config.disabled_rules = conf.disabled_rules,
-                                Err(err) => println!("{err}"),
+                            let c: mlua::Result<Config> = lua.unpack(raw_conf);
+                            match c {
+                                Ok(conf) => config = conf,
+                                Err(err) => println!("{}: {}", &args.config, err),
                             }
                         }
                     }
