@@ -1,7 +1,4 @@
 use std::{collections::HashSet, fmt::Display};
-
-use mlua::IntoLua;
-
 /// https://sqlite.org/datatype3.html#storage_classes_and_datatypes
 #[derive(Debug)]
 pub enum SqliteStorageClass {
@@ -70,17 +67,20 @@ pub struct Context {
     pub databases: HashSet<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct HookContext {
+    /// [Self::kind] will be the name of the node for most nodes, except nodes that hold different kinds, such as Literal, which can be an Ident, a String, a Number, etc.
     pub kind: String,
-    pub text: Option<String>,
+    /// [Self::content] holds the textual representation of a nodes contents if it is [crates::parser::nodes::Literal].
+    pub content: Option<String>,
     pub children: Vec<HookContext>,
 }
 
-impl IntoLua for HookContext {
+impl mlua::IntoLua for HookContext {
     fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
         let table = lua.create_table()?;
         table.set("kind", self.kind)?;
-        table.set("text", self.text.unwrap_or_else(|| String::new()))?;
+        table.set("text", self.content.unwrap_or_else(|| String::new()))?;
         table.set("children", self.children)?;
         lua.pack(table)
     }

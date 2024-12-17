@@ -4,7 +4,6 @@ use std::{fs, process::exit, vec};
 use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
-use mlua::Lua;
 use types::config::Config;
 use types::rules::Rule;
 
@@ -48,6 +47,29 @@ struct Cli {
     disable: Option<Vec<Rule>>,
 }
 
+fn configuration(lua: &mlua::Lua, file_name: &str) -> Result<Config, String> {
+    let conf_str = fs::read_to_string(file_name)
+        .map_err(|err| format!("Failed to read configuration file '{}': {}", file_name, err))?;
+    let globals = lua.globals();
+    lua.load(conf_str)
+        .set_name(file_name)
+        .exec()
+        .map_err(|err| format!("{}: {}", file_name, err))?;
+    let raw_conf = globals
+        .get::<mlua::Value>("leibniz")
+        .map_err(|err| format!("{}: {}", file_name, err))?;
+    if raw_conf.is_nil() {
+        return Err(format!(
+            "{}: leibniz table is missing from configuration",
+            file_name
+        ));
+    }
+    let conf: Config = lua
+        .unpack(raw_conf)
+        .map_err(|err| format!("{}: {}", file_name, err))?;
+    Ok(conf)
+}
+
 struct FileResult {
     name: String,
     errors: usize,
@@ -69,36 +91,14 @@ fn main() {
     };
 
     if !args.ignore_config {
-        match fs::read_to_string(&args.config) {
-            Ok(config_str) => {
-                let lua = Lua::new();
-                let globals = lua.globals();
-                globals
-                    .set(
-                        "leibniz",
-                        Config {
-                            disabled_rules: vec![],
-                            hooks: None,
-                        },
-                    )
-                    .expect("failed to serialize default configuration");
-                match lua.load(config_str).set_name(&args.config).exec() {
-                    Ok(()) => {
-                        if let Ok(raw_conf) = globals.get::<mlua::Value>("leibniz") {
-                            let c: mlua::Result<Config> = lua.unpack(raw_conf);
-                            match c {
-                                Ok(conf) => config = conf,
-                                Err(err) => println!("{}: {}", &args.config, err),
-                            }
-                        }
-                    }
-                    Err(err) => println!("{err}"),
-                }
+        // lua defined here because it would be dropped at the end of configuration(), in the
+        // future this will probably need to be moved one scope up to life long enough for analysis
+        let lua = mlua::Lua::new();
+        match configuration(&lua, &args.config) {
+            Ok(conf) => config = conf,
+            Err(err) => {
+                error::warn(&err.to_string());
             }
-            Err(err) => warn(&format!(
-                "Failed to execute configuration file '{}': {}",
-                args.config, err
-            )),
         }
     }
 

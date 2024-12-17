@@ -1,5 +1,5 @@
 pub mod config;
-mod ctx;
+pub mod ctx;
 mod keyword;
 pub mod rules;
 

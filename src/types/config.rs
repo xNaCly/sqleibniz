@@ -1,4 +1,4 @@
-use mlua::{FromLua, Function, IntoLua, Table, UserData};
+use mlua::{FromLua, Function, Table, UserData};
 
 use super::{ctx::HookContext, rules::Rule};
 
@@ -27,8 +27,9 @@ impl FromLua for Config {
 /// sqleibniz allows for writing custom rules with lua
 pub struct Hook {
     pub name: String,
+    /// node is optional, because omitting it executes the hook for every encountered node
     pub node: Option<String>,
-    /// hook can be executed via [Function::call]`(args)`, where args is [HookContext]
+    /// hook can be executed via [Function::exec]`(arg)`, where args is [HookContext]
     pub hook: Option<Function>,
 }
 
@@ -38,12 +39,6 @@ impl Hook {
             hook.call(arg)?
         }
         Ok(())
-    }
-}
-
-impl IntoLua for Hook {
-    fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
-        lua.pack(lua.create_table()?)
     }
 }
 

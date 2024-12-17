@@ -1,5 +1,3 @@
-use mlua::FromLua;
-
 #[derive(Debug, PartialEq, Clone)]
 /// Rule is attached to each error and can be supplied to sqleibniz via the Config structure serialized in ./leibniz.toml
 #[derive(clap::ValueEnum)]
@@ -30,7 +28,7 @@ pub enum Rule {
     Semicolon,
 }
 
-impl FromLua for Rule {
+impl mlua::FromLua for Rule {
     fn from_lua(value: mlua::Value, lua: &mlua::Lua) -> mlua::Result<Self> {
         let value: String = lua.unpack(value)?;
 

@@ -34,14 +34,14 @@ leibniz = {
             --```
             --    node: {
             --     kind: string,
-            --     text: string,
+            --     content: string,
             --     children: node[],
             --    }
             --```
             --
             hook = function(node)
                 if node.kind == "ident" then
-                    if string.match(node.text, "%u") then
+                    if string.match(node.content, "%u") then
                         -- returing an error passes the diagnostic to sqleibniz,
                         -- thus a pretty message with the name of the hook, the
                         -- node it occurs and the message passed to error() is
@@ -57,10 +57,16 @@ leibniz = {
             hook = function(node)
                 local max_size = 12
                 if node.kind == "ident" then
-                    if string.len(node.text) >= max_size then
+                    if string.len(node.content) >= max_size then
                         error("idents shouldn't be longer than " .. max_size .. " characters")
                     end
                 end
+            end
+        },
+        {
+            name = "hook test",
+            hook = function(node)
+                print(node.kind .. " " .. node.text .. " " .. #node.children)
             end
         }
     }
