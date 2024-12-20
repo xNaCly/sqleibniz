@@ -1,3 +1,4 @@
+use nodes::BindParameter;
 #[cfg(feature = "trace")]
 use tracer::Tracer;
 
@@ -291,7 +292,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
-            // Type::Keyword(Keyword::ATTACH) => self.attach_stmt(),
+            Type::Keyword(Keyword::ATTACH) => self.attach_stmt(),
             Type::Keyword(Keyword::REINDEX) => self.reindex_stmt(),
             Type::Keyword(Keyword::RELEASE) => self.release_stmt(),
             Type::Keyword(Keyword::SAVEPOINT) => self.savepoint_stmt(),
@@ -429,18 +430,20 @@ impl<'a> Parser<'a> {
     /// https://www.sqlite.org/syntax/attach-stmt.html
     fn attach_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
         trace!(self.tracer, "attach_stmt", self.cur());
-        let mut a = nodes::Attach {
-            t: self.cur()?.clone(),
-            schema_name: String::new(),
-            children: None,
-        };
+        let t = self.cur()?.clone();
+        // skipping ATTACH
         self.advance();
-
+        // skipping optional DATABASE
         if self.is(Type::Keyword(Keyword::DATABASE)) {
             self.advance();
         }
 
-        // TODO: expr here
+        let mut a = nodes::Attach {
+            t,
+            schema_name: String::new(),
+            children: None,
+            expr: self.expr()?,
+        };
 
         self.consume(Type::Keyword(Keyword::AS));
 
@@ -970,5 +973,108 @@ impl<'a> Parser<'a> {
                 None
             }
         }
+    }
+
+    /// parses an sql expression: https://www.sqlite.org/syntax/expr.html
+    fn expr(&mut self) -> Option<nodes::Expr> {
+        let mut e = nodes::Expr {
+            t: self.cur()?.clone(),
+            children: None,
+            literal: None,
+            bind: None,
+        };
+        match self.cur()?.ttype {
+            // literal value
+            Type::String(_)
+            | Type::Number(_)
+            | Type::Blob(_)
+            | Type::Keyword(Keyword::NULL)
+            | Type::Boolean(_)
+            | Type::Keyword(Keyword::CURRENT_TIME)
+            | Type::Keyword(Keyword::CURRENT_DATE)
+            | Type::Keyword(Keyword::CURRENT_TIMESTAMP) => {
+                e.literal = self.literal_value().map(|e| e.token().clone())
+            }
+            // bind parameter with optional ident: ?[ident]
+            Type::Question => {
+                // documentation says: But because it is easy to miscount the question marks, the
+                // use of this parameter format is discouraged. Programmers are encouraged to use
+                // one of the symbolic formats below or the ?NNN format above instead.
+                let mut param = BindParameter {
+                    t: self.cur()?.clone(),
+                    children: None,
+                    counter: None,
+                    name: None,
+                };
+                self.advance();
+
+                // question mark can have a number after them, but they are optional
+                if let Some(Token {
+                    ttype: Type::Number(_),
+                    ..
+                }) = self.cur()
+                {
+                    param.counter = self.literal_value();
+                }
+                e.bind = Some(param)
+            }
+            // bind parameter with required ident: [:@$]<ident>
+            Type::Colon | Type::At | Type::Dollar => {
+                let mut bind = BindParameter {
+                    t: self.cur()?.clone(),
+                    children: None,
+                    counter: None,
+                    name: None,
+                };
+                self.advance();
+
+                // all bind params need an identifier, because they need to be named
+                if let Some(Token {
+                    ttype: Type::Ident(ident),
+                    ..
+                }) = self.cur()
+                {
+                    bind.name = Some(ident.clone());
+                    self.advance();
+                } else {
+                    self.errors.push(self.err(
+                        "Invalid bind parameter",
+                        &format!(
+                            "Bind parameter with {:?} requires an identifier as a postfix",
+                            bind.t.ttype
+                        ),
+                        &bind.t,
+                        Rule::Syntax,
+                    ));
+                    // skip invalid token
+                    self.advance();
+                    return None;
+                }
+                e.bind = Some(bind);
+            }
+            Type::Ident(_) => {
+                // this is the start of a function
+                if self.next_is(Type::BraceLeft) {
+                    todo!("function-name(function-arguments) [filter-clause] [over-clause]")
+                }
+
+                todo!("[schema-name.][table-name.]<column-name>");
+            }
+            _ => {
+                let t = self.cur()?;
+                self.errors.push(self.err(
+                    "Invalid construct",
+                    &format!(
+                        "At this point in an expression, {:?} is not a valid construct",
+                        t.ttype
+                    ),
+                    t,
+                    Rule::Syntax,
+                ));
+                self.advance();
+                return None;
+            }
+        }
+        Some(e)
     }
 }

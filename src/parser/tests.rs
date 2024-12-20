@@ -153,6 +153,13 @@ EXPLAIN VACUUM;
     }
 
     test_group_pass_assert! {
+        attach_stmt,
+
+        attach:r"ATTACH 'database.db' AS db;"=vec![Type::Keyword(Keyword::ATTACH)],
+        attach_database:r"ATTACH DATABASE 'database.db' AS db;"=vec![Type::Keyword(Keyword::ATTACH)]
+    }
+
+    test_group_pass_assert! {
         reindex_stmt,
 
         reindex:r"REINDEX;"=vec![Type::Keyword(Keyword::REINDEX)],

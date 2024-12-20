@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+#[cfg(feature = "trace")]
+use std::time::SystemTime;
 use std::{fs, process::exit, vec};
 
 use clap::Parser;
@@ -125,6 +127,9 @@ fn main() {
         })
         .collect::<Vec<FileResult>>();
 
+    #[cfg(feature = "trace")]
+    let start = SystemTime::now();
+
     for file in &mut files {
         let mut errors = vec![];
         let content = match fs::read(&file.name) {
@@ -145,9 +150,11 @@ fn main() {
             #[cfg(feature = "trace")]
             error::print_str_colored(&format!("{:=^72}\n", " CALL STACK "), error::Color::Blue);
             let mut parser = parser::Parser::new(toks, file.name.as_str());
-            let ast = parser.parse();
+            #[cfg(not(feature = "trace"))]
+            let _ = parser.parse();
             #[cfg(feature = "trace")]
             {
+                let ast = parser.parse();
                 error::print_str_colored(&format!("{:=^72}\n", " AST "), error::Color::Blue);
                 for node in ast {
                     if let Some(node) = node {
@@ -187,6 +194,8 @@ fn main() {
         file.errors = processed_errors.len();
         file.ignored_errors = ignored_errors;
     }
+    #[cfg(feature = "trace")]
+    let took = SystemTime::now().duration_since(start).unwrap();
 
     if args.silent {
         let verified = files.iter().filter(|f| f.errors == 0).count();
@@ -230,6 +239,8 @@ fn main() {
     println!();
     print_str_colored("=>", error::Color::Blue);
     let verified = files.iter().filter(|f| f.errors == 0).count();
+    #[cfg(feature = "trace")]
+    print!(" [{:?}]", took);
     println!(
         " {}/{} Files verified successfully, {} verification failed.",
         verified,

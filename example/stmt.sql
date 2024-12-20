@@ -71,6 +71,11 @@ SAVEPOINT savepoint_name;
 RELEASE savepoint_name;
 RELEASE SAVEPOINT savepoint_name;
 
+-- https://www.sqlite.org/syntax/reindex-stmt.html
 REINDEX;
 REINDEX collation_name;
 REINDEX schema_name.table_name;
+
+-- https://www.sqlite.org/lang_attach.html
+ATTACH DATABASE 'users.db' AS users;
+ATTACH 'users.db' AS users;

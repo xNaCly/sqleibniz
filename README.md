@@ -44,36 +44,36 @@ dynamic correctness. See below for a list of currently implemented features.
 
 ### Supported sql statements
 
-| done | `sqlite`-syntax name        | sql example                          | non-standard sql |
-| ---- | --------------------------- | ------------------------------------ | ---------------- |
-| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                |                  |
-|      | `alter-table-stmt`          |                                      |                  |
-| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                  |                  |
-|      | `attach-stmt`               |                                      |                  |
-| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`        |                  |
-| ✅   | `commit-stmt`               | `END TRANSACTION;`                   |                  |
-|      | `create-index-stmt`         |                                      |                  |
-|      | `create-table-stmt`         |                                      |                  |
-|      | `create-trigger-stmt`       |                                      |                  |
-|      | `create-view-stmt`          |                                      |                  |
-|      | `create-virtual-table-stmt` |                                      |                  |
-|      | `delete-stmt`               |                                      |                  |
-|      | `delete-stmt-limited`       |                                      |                  |
-| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`        |                  |
-| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`               |                  |
-| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`               |                  |
-| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`           |                  |
-| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                 |                  |
-|      | `insert-stmt`               |                                      |                  |
-|      | `pragma-stmt`               |                                      | sqlite specific  |
-| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`         |                  |
-| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint` |                  |
-| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`      |                  |
-| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`         |                  |
-|      | `select-stmt`               |                                      |                  |
-|      | `update-stmt`               |                                      |                  |
-|      | `update-stmt-limited`       |                                      |                  |
-| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`          |                  |
+| done | `sqlite`-syntax name        | sql example                            | non-standard sql |
+| ---- | --------------------------- | -------------------------------------- | ---------------- |
+| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                  |                  |
+|      | `alter-table-stmt`          |                                        |                  |
+| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                    |                  |
+| ✅   | `attach-stmt`               | `ATTACH DATABASE 'users.db' AS users;` |                  |
+| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`          |                  |
+| ✅   | `commit-stmt`               | `END TRANSACTION;`                     |                  |
+|      | `create-index-stmt`         |                                        |                  |
+|      | `create-table-stmt`         |                                        |                  |
+|      | `create-trigger-stmt`       |                                        |                  |
+|      | `create-view-stmt`          |                                        |                  |
+|      | `create-virtual-table-stmt` |                                        |                  |
+|      | `delete-stmt`               |                                        |                  |
+|      | `delete-stmt-limited`       |                                        |                  |
+| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`          |                  |
+| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`                 |                  |
+| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`                 |                  |
+| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`             |                  |
+| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                   |                  |
+|      | `insert-stmt`               |                                        |                  |
+|      | `pragma-stmt`               |                                        | sqlite specific  |
+| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`           |                  |
+| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint`   |                  |
+| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`        |                  |
+| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`           |                  |
+|      | `select-stmt`               |                                        |                  |
+|      | `update-stmt`               |                                        |                  |
+|      | `update-stmt-limited`       |                                        |                  |
+| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`            |                  |
 
 ## Installation
 
@@ -322,19 +322,13 @@ EXPLAIN VACUUM;
 EXPLAIN QUERY PLAN VACUUM my_big_schema INTO 'repacked.db';
 ```
 
-For instance, parsing the above SQL results in the generation and print of a
+For instance, parsing the above SQL results in the generation and printing of a
 parser callstack and the resulting AST:
 
 ```text
-sqleibniz master M :: cargo run --features trace -- test.sql
-   Compiling sqleibniz v0.1.0 (/home/magr6/programming/sqleibniz)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.27s
-     Running `target/debug/sqleibniz test.sql`
-warn: Ignoring the following diagnostics, as specified:
- -> NoContent
- -> NoStatements
- -> Unimplemented
- -> BadSqleibnizInstruction
+sqleibniz master M :: cargo run --features trace -- -i test.sql
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `target/debug/sqleibniz -i test.sql`
 ============================== CALL STACK ==============================
  ↳ Parser::parse(Some(Keyword(EXPLAIN)))
   ↳ Parser::sql_stmt_list(Some(Keyword(EXPLAIN)))
@@ -345,14 +339,14 @@ warn: Ignoring the following diagnostics, as specified:
      ↳ Parser::sql_stmt(Some(Keyword(VACUUM)))
       ↳ Parser::vacuum_stmt(Some(Keyword(VACUUM)))
 ================================= AST ==================================
-- Explain
- - Vacuum [schema_name=None]  [filename=None]
-- Explain
- - Vacuum [schema_name=Some(Token { ttype: Ident("my_big_schema"), start: 26, end: 39, line: 1 })]  [filename=Some(Token { ttype: String("repacked.db"), start: 45, end: 58, line: 1 })]
+- Explain(Keyword(EXPLAIN))
+ - Vacuum(Keyword(VACUUM)) [schema_name=None]  [filename=None]
+- Explain(Keyword(EXPLAIN))
+ - Vacuum(Keyword(VACUUM)) [schema_name=Some(Token { ttype: Ident("my_big_schema"), start: 26, end: 39, line: 1 })]  [filename=Some(Token { ttype: String("repacked.db"), start: 45, end: 58, line: 1 })]
 =============================== Summary ================================
 [+] test.sql:
     0 Error(s) detected
     0 Error(s) ignored
 
-=> 1/1 Files verified successfully, 0 verification failed
+=> [512.047µs] 1/1 Files verified successfully, 0 verification failed.
 ```

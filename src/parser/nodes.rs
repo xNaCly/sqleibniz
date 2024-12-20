@@ -49,9 +49,13 @@ macro_rules! node {
                 &self.t
             }
 
+            fn children(&self) -> &Option<Vec<Box<dyn Node>>> {
+                &self.children
+            }
+
             #[cfg(feature = "trace")]
             fn display(&self, indent: usize) {
-                print!("{}- {}", " ".repeat(indent), self.name());
+                print!("{}- {}({:?})", " ".repeat(indent), self.name(), self.t.ttype);
                 $(
                     print!(" [{}={:?}] ", stringify!($field_name), self.$field_name);
                 )*
@@ -75,6 +79,7 @@ pub trait Node: std::fmt::Debug {
     #[cfg(feature = "trace")]
     fn display(&self, indent: usize);
     fn name(&self) -> &str;
+    fn children(&self) -> &Option<Vec<Box<dyn Node>>>;
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
     // trait should enforce a analyse(&self) -> Vec<Error> function.
 }
@@ -82,6 +87,20 @@ pub trait Node: std::fmt::Debug {
 node!(
     Literal,
     "holds all literal types, such as strings, numbers, etc.",
+);
+
+node!(
+    Expr,
+    "Expr expression, see: https://www.sqlite.org/lang_expr.html#varparam",
+    literal: Option<Token>,
+    bind: Option<BindParameter>
+);
+
+node!(
+    BindParameter,
+    "Bind parameter: https://www.sqlite.org/lang_expr.html#parameters",
+    counter: Option<Box<dyn Node>>,
+    name: Option<String>
 );
 
 node!(
@@ -143,7 +162,8 @@ node!(
 node!(
     Attach,
     "Attach stmt, see: https://www.sqlite.org/lang_attach.html",
-    schema_name: String
+    schema_name: String,
+    expr: Expr
 );
 
 node!(

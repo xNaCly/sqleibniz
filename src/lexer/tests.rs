@@ -64,7 +64,11 @@ mod should_pass {
         semicolon: ";"=vec![Type::Semicolon],
         comma: ","=vec![Type::Comma],
         percent: "%"=vec![Type::Percent],
-        equal: "="=vec![Type::Equal]
+        equal: "="=vec![Type::Equal],
+        at: "@"=vec![Type::At],
+        colon: ":"=vec![Type::Colon],
+        dollar: "$"=vec![Type::Dollar],
+        question: "?"=vec![Type::Question]
     }
 
     test_group_pass_assert! {

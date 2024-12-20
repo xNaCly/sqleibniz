@@ -94,6 +94,14 @@ pub enum Type {
     Percent,
     Comma,
     Equal,
+    Question,
+    Colon,
+    At,
+    Dollar,
+    BraceLeft,
+    BraceRight,
+    BracketLeft,
+    BracketRight,
 
     /// Instructs the parser to skip all token until Type::Semicolon is hit
     InstructionExpect,

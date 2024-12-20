@@ -230,6 +230,14 @@ impl<'a> Lexer<'a> {
                 ',' => r.push(self.single(Type::Comma)),
                 '%' => r.push(self.single(Type::Percent)),
                 '=' => r.push(self.single(Type::Equal)),
+                '@' => r.push(self.single(Type::At)),
+                ':' => r.push(self.single(Type::Colon)),
+                '$' => r.push(self.single(Type::Dollar)),
+                '?' => r.push(self.single(Type::Question)),
+                '(' => r.push(self.single(Type::BraceLeft)),
+                ')' => r.push(self.single(Type::BraceRight)),
+                '[' => r.push(self.single(Type::BracketLeft)),
+                ']' => r.push(self.single(Type::BracketRight)),
                 // numbers, see: https://www.sqlite.org/lang_expr.html#literal_values_constants_
                 '0'..='9' | '.' => {
                     // only '.', with no digit following it is an indexing operation
