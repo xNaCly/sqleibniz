@@ -292,6 +292,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "sql_stmt", self.cur());
         let r = match self.cur()?.ttype {
             // TODO: add new statement starts here
+            Type::Keyword(Keyword::ALTER) => self.alter_stmt(),
             Type::Keyword(Keyword::ATTACH) => self.attach_stmt(),
             Type::Keyword(Keyword::REINDEX) => self.reindex_stmt(),
             Type::Keyword(Keyword::RELEASE) => self.release_stmt(),
@@ -387,6 +388,11 @@ impl<'a> Parser<'a> {
 
     // TODO: add new statement function here *_stmt()
     // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
+
+    /// https://www.sqlite.org/lang_altertable.html
+    fn alter_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        None
+    }
 
     /// https://www.sqlite.org/syntax/reindex-stmt.html
     fn reindex_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
@@ -982,6 +988,9 @@ impl<'a> Parser<'a> {
             children: None,
             literal: None,
             bind: None,
+            schema: None,
+            table: None,
+            column: None,
         };
         match self.cur()?.ttype {
             // literal value
@@ -997,9 +1006,9 @@ impl<'a> Parser<'a> {
             }
             // bind parameter with optional ident: ?[ident]
             Type::Question => {
-                // documentation says: But because it is easy to miscount the question marks, the
+                // sqlite documentation says: But because it is easy to miscount the question marks, the
                 // use of this parameter format is discouraged. Programmers are encouraged to use
-                // one of the symbolic formats below or the ?NNN format above instead.
+                // one of the symbolic formats [...] or the ?NNN format [...] instead.
                 let mut param = BindParameter {
                     t: self.cur()?.clone(),
                     children: None,
@@ -1058,6 +1067,7 @@ impl<'a> Parser<'a> {
                     todo!("function-name(function-arguments) [filter-clause] [over-clause]")
                 }
 
+                // this sets either the schema, the table or the column
                 todo!("[schema-name.][table-name.]<column-name>");
             }
             _ => {

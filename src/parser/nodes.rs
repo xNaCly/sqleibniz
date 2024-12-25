@@ -81,7 +81,7 @@ pub trait Node: std::fmt::Debug {
     fn name(&self) -> &str;
     fn children(&self) -> &Option<Vec<Box<dyn Node>>>;
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
-    // trait should enforce a analyse(&self) -> Vec<Error> function.
+    // trait should enforce a analyse(&self, ctx &types::ctx::Context) -> Vec<Error> function.
 }
 
 node!(
@@ -93,7 +93,10 @@ node!(
     Expr,
     "Expr expression, see: https://www.sqlite.org/lang_expr.html#varparam",
     literal: Option<Token>,
-    bind: Option<BindParameter>
+    bind: Option<BindParameter>,
+    schema: Option<String>,
+    table: Option<String>,
+    column: Option<String>
 );
 
 node!(
