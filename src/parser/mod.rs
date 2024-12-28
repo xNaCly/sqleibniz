@@ -1,11 +1,10 @@
-use nodes::BindParameter;
+use nodes::{BindParameter, SchemaTableContainer};
 #[cfg(feature = "trace")]
 use tracer::Tracer;
 
 use crate::{
     error::{Error, ImprovedLine},
-    types::rules::Rule,
-    types::{Keyword, Token, Type},
+    types::{rules::Rule, storage::SqliteStorageClass, Keyword, Token, Type},
 };
 
 mod nodes;
@@ -133,7 +132,7 @@ impl<'a> Parser<'a> {
         false
     }
 
-    /// checks if type of current token is equal to t, otherwise pushes an error, advances either way
+    /// checks if type of current token is equal to t, otherwise pushs an error, advances either way
     fn consume(&mut self, t: Type) {
         let tt = t.clone();
         if !self.is(tt) {
@@ -225,6 +224,136 @@ impl<'a> Parser<'a> {
             self.skip_until_semicolon_or_eof();
             None
         }
+    }
+
+    /// wraps [Parser::schema_table_container], returns a Result containing an Error if [Parser::schema_table_container] returns Option::None
+    fn schema_table_container_ok(
+        &mut self,
+        doc: &'static str,
+    ) -> Result<SchemaTableContainer, Error> {
+        match self.schema_table_container() {
+            Some(t) => Ok(t),
+            None => {
+                let cur = match self.cur() {
+                    Some(cur) => cur,
+                    None => match self.tokens.get(self.pos-1) {
+                        Some(prev) => prev,
+                        None => panic!("Parser::tokens::get(Parser::pos-1) is Option::None at Parser::schema_table_container_ok(), this should not happen")
+                    }
+                };
+                let mut err = self.err(
+                    "Missing schema_name or table_name",
+                    &format!(
+                        "expected either Ident(<schema_name.table_name>) or Ident(<table_name>) at this point, got {:?}",
+                        cur.ttype
+                    ),
+                    cur,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some(doc);
+                Err(err)
+            }
+        }
+    }
+
+    /// parses schema_name.table_name and table_name, this does only emit errors for syntax issues, otherwise, use [Parser::schema_table_container_ok]
+    fn schema_table_container(&mut self) -> Option<SchemaTableContainer> {
+        match self.cur()?.ttype.clone() {
+            Type::Ident(schema) if self.next_is(Type::Dot) => {
+                // skip schema_name
+                self.advance();
+                // skip Type::Dot
+                self.advance();
+                if let Type::Ident(table) = self.cur()?.ttype.clone() {
+                    // skip table_name
+                    self.advance();
+                    Some(SchemaTableContainer::SchemaAndTable { schema, table })
+                } else {
+                    // we got schema_name. but no identifier following? this is a syntax error (i
+                    // think?)
+                    self.errors.push(self.err(
+                        "Missing table_name",
+                        &format!(
+                            "expected a Ident(<table_name>) after getting Ident(<schema_name>) and Type::Dot ('.'), got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    ));
+                    // skip wrong token
+                    self.advance();
+                    None
+                }
+            }
+            Type::Ident(table_name) => {
+                // skip table_name
+                self.advance();
+                Some(SchemaTableContainer::Table(table_name))
+            }
+            _ => None,
+        }
+    }
+
+    /// https://www.sqlite.org/syntax/column-def.html
+    fn column_def(&mut self) -> Option<nodes::ColumnDef> {
+        let mut def = nodes::ColumnDef {
+            t: self.cur()?.clone(),
+            children: None,
+            name: String::new(),
+            type_name: None,
+        };
+
+        def.name = self.consume_ident("https://www.sqlite.org/syntax/column-def.html", "name")?;
+
+        // we got a type_name: https://www.sqlite.org/syntax/type-name.html
+        while let Type::Ident(name) = &self.cur()?.ttype {
+            def.type_name = Some(SqliteStorageClass::from_str(&name));
+            // skip ident
+            self.advance();
+            if self.is(Type::BraceLeft) {
+                // skip Type::BraceLeft
+                self.advance();
+                if let Type::Number(_) = self.cur()?.ttype {
+                    self.advance();
+                } else {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "Wanted a Number after Type::BraceLeft, got {:?}.",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
+                    self.errors.push(err);
+                    self.advance();
+                }
+
+                if self.is(Type::Comma) {
+                    self.advance();
+                    if let Type::Number(_) = self.cur()?.ttype {
+                        self.advance();
+                    } else {
+                        let mut err = self.err(
+                            "Unexpected Token",
+                            &format!(
+                                "Wanted a Number after Type::BraceLeft, Type::Number and Type::Comma, got {:?}.",
+                                self.cur()?.ttype
+                            ),
+                            self.cur()?,
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
+                        self.errors.push(err);
+                        self.advance();
+                    }
+                }
+                self.consume(Type::BraceRight);
+            }
+        }
+
+        Some(def)
     }
 
     pub fn parse(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
@@ -387,11 +516,102 @@ impl<'a> Parser<'a> {
     }
 
     // TODO: add new statement function here *_stmt()
-    // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {}
+    // fn $1_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+    //     trace!(self.tracer, "sql_stmt", self.cur());
+    //     detrace!(self.tracer);
+    // }
 
     /// https://www.sqlite.org/lang_altertable.html
     fn alter_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
-        None
+        trace!(self.tracer, "alter_stmt", self.cur());
+        let mut a = nodes::Alter {
+            t: self.cur()?.clone(),
+            children: None,
+            target: SchemaTableContainer::Table(String::new()),
+            rename_to: None,
+            rename_column_target: None,
+            new_column_name: None,
+            add_column: None,
+            drop_column: None,
+        };
+
+        self.advance();
+        self.consume(Type::Keyword(Keyword::TABLE));
+
+        a.target =
+            match self.schema_table_container_ok("https://www.sqlite.org/lang_altertable.html") {
+                Ok(container) => container,
+                Err(err) => {
+                    self.errors.push(err);
+                    a.target
+                }
+            };
+
+        match self.cur()?.ttype {
+            Type::Keyword(Keyword::RENAME) => {
+                self.advance();
+                if self.is(Type::Keyword(Keyword::TO)) {
+                    // RENAME TO <new_table_name>
+                    self.advance();
+                    let new_table_name = self.consume_ident(
+                        "https://www.sqlite.org/lang_altertable.html",
+                        "new_table_name",
+                    )?;
+                    a.rename_to = Some(new_table_name);
+                } else {
+                    if self.is(Type::Keyword(Keyword::COLUMN)) {
+                        self.advance();
+                    }
+
+                    a.rename_column_target = self.consume_ident(
+                        "https://www.sqlite.org/lang_altertable.html",
+                        "column_name",
+                    );
+                    self.consume(Type::Keyword(Keyword::TO));
+                    a.new_column_name = self.consume_ident(
+                        "https://www.sqlite.org/lang_altertable.html",
+                        "column_name",
+                    );
+                }
+            }
+            Type::Keyword(Keyword::ADD) => {
+                self.advance();
+                if self.is(Type::Keyword(Keyword::COLUMN)) {
+                    self.advance();
+                }
+                a.add_column = self.column_def();
+                if !self.is(Type::Semicolon) {
+                    todo!("column constraints are not yet implemented")
+                }
+            }
+            Type::Keyword(Keyword::DROP) => {
+                self.advance();
+                if self.is(Type::Keyword(Keyword::COLUMN)) {
+                    self.advance();
+                }
+                a.drop_column = self
+                    .consume_ident("https://www.sqlite.org/lang_altertable.html", "column_name");
+            }
+            _ => {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "ALTER requires either RENAME, ADD or DROP at this point, got {:?}",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/lang_altertable.html");
+                self.errors.push(err);
+                self.advance();
+                return None;
+            }
+        }
+
+        self.expect_end("https://www.sqlite.org/lang_altertable.html");
+        detrace!(self.tracer);
+        some_box!(a)
     }
 
     /// https://www.sqlite.org/syntax/reindex-stmt.html
@@ -399,7 +619,7 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "reindex_stmt", self.cur());
         let mut r = nodes::Reindex {
             t: self.cur()?.clone(),
-            collation_or_schema: None,
+            target: None,
             children: None,
         };
         self.advance();
@@ -409,23 +629,7 @@ impl<'a> Parser<'a> {
             return some_box!(r);
         }
 
-        // either collation_name, schema_name of schema_name.table_or_index_name or table_or_index_name
-        let mut collation_or_schema_or_table_or_view = self.consume_ident(
-            "https://www.sqlite.org/syntax/reindex-stmt.html",
-            "collation_or_schema_or_table_or_index",
-        )?;
-
-        // branch for schema_name.table_or_index_name
-        if self.is(Type::Dot) {
-            collation_or_schema_or_table_or_view.push('.');
-            self.advance();
-            collation_or_schema_or_table_or_view.push_str(&self.consume_ident(
-                "https://www.sqlite.org/syntax/reindex-stmt.html",
-                "table_or_index_name",
-            )?);
-        }
-
-        r.collation_or_schema = Some(collation_or_schema_or_table_or_view);
+        r.target = self.schema_table_container();
 
         self.expect_end("https://www.sqlite.org/syntax/reindex-stmt.html");
 
@@ -607,50 +811,12 @@ impl<'a> Parser<'a> {
         trace!(self.tracer, "analyse_stmt", self.cur());
         let mut a = nodes::Analyze {
             t: self.cur()?.clone(),
-            schema_index_or_table_name: None,
-            schema_with_table_or_index_name: None,
+            target: None,
             children: None,
         };
 
         self.advance();
-
-        match &self.cur()?.ttype {
-            // ANALYZE schema_name.table_or_index_name
-            Type::Ident(ident) if self.next_is(Type::Dot) => {
-                let mut schema_name = String::from(ident);
-                // skip ident
-                self.advance();
-                // skip dot
-                self.advance();
-
-                if let Type::Ident(ident) = &self.cur()?.ttype {
-                    schema_name.push('.');
-                    schema_name += ident.as_str();
-                    a.schema_with_table_or_index_name = Some(schema_name);
-                    self.advance();
-                } else {
-                    let mut err = self.err(
-                        "Unexpected Token",
-                        &format!(
-                            "ANALYZE requires Ident(<table_or_index_name>) after Dot and Ident(<schema_name>), got {:?}",
-                            self.cur()?.ttype
-                        ),
-                        self.cur()?,
-                        Rule::Syntax,
-                    );
-                    err.doc_url = Some("https://www.sqlite.org/lang_analyze.html");
-                    self.advance();
-                    self.errors.push(err);
-                }
-            }
-            // ANALYZE schema_name
-            // ANALYZE index_or_table_name
-            Type::Ident(ident) => {
-                a.schema_index_or_table_name = Some(ident.into());
-                self.advance();
-            }
-            _ => (),
-        }
+        a.target = self.schema_table_container();
 
         self.expect_end("https://www.sqlite.org/lang_analyze.html");
         detrace!(self.tracer);
@@ -668,31 +834,18 @@ impl<'a> Parser<'a> {
             self.advance();
         }
 
-        let r: Option<Box<dyn nodes::Node>> =
-            if let Type::Ident(schema_name) = self.cur()?.ttype.clone() {
-                self.advance();
-                some_box!(nodes::Detach {
-                    t,
-                    schema_name: schema_name.into(),
-                    children: None,
-                })
-            } else {
-                let mut err = self.err(
-                    "Unexpected Token",
-                    &format!(
-                        "DETACH requires Ident(<schema_name>) at this point, got {:?}",
-                        self.cur()?.ttype
-                    ),
-                    self.cur()?,
-                    Rule::Syntax,
-                );
-                err.doc_url = Some("https://www.sqlite.org/lang_detach.html");
-                self.errors.push(err);
-                None
-            };
+        let schema_name =
+            self.consume_ident("https://www.sqlite.org/lang_detach.html", "schema_name")?;
+
+        let d = nodes::Detach {
+            t,
+            schema_name,
+            children: None,
+        };
+
         self.expect_end("https://www.sqlite.org/lang_detach.html");
         detrace!(self.tracer);
-        r
+        some_box!(d)
     }
 
     /// https://www.sqlite.org/syntax/rollback-stmt.html

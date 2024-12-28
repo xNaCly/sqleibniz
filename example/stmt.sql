@@ -79,3 +79,14 @@ REINDEX schema_name.table_name;
 -- https://www.sqlite.org/lang_attach.html
 ATTACH DATABASE 'users.db' AS users;
 ATTACH 'users.db' AS users;
+
+-- https://www.sqlite.org/lang_altertable.html
+ALTER TABLE schema.table_name RENAME TO new_table;
+ALTER TABLE schema.table_name RENAME old_column_name TO new_column_name;
+ALTER TABLE schema.table_name RENAME COLUMN old_column_name TO new_column_name;
+
+ALTER TABLE schema.table_name ADD new_column_name TEXT;
+ALTER TABLE schema.table_name ADD COLUMN new_column_name TEXT;
+
+ALTER TABLE schema.table_name DROP column_name;
+ALTER TABLE schema.table_name DROP COLUMN column_name;

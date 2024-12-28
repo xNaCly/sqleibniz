@@ -166,6 +166,20 @@ EXPLAIN VACUUM;
         reindex_collation_name:r"REINDEX collation_name;"=vec![Type::Keyword(Keyword::REINDEX)],
         reindex_schema_name_table_name:r"REINDEX schema_name.table_name;"=vec![Type::Keyword(Keyword::REINDEX)]
     }
+
+    test_group_pass_assert! {
+        alter_stmt,
+
+        alter_rename_to:r"ALTER TABLE schema.table_name RENAME TO new_table;"=vec![Type::Keyword(Keyword::ALTER)],
+        alter_rename_colum_to:r"ALTER TABLE schema.table_name RENAME COLUMN old_column_name TO new_column_name;"=vec![Type::Keyword(Keyword::ALTER)],
+        alter_rename_colum_to_without_column_keyword:r"ALTER TABLE schema.table_name RENAME old_column_name TO new_column_name;"=vec![Type::Keyword(Keyword::ALTER)],
+
+        alter_add:r"ALTER TABLE schema.table_name ADD COLUMN column_name TEXT;"=vec![Type::Keyword(Keyword::ALTER)],
+        alter_add_without_column_keyword:r"ALTER TABLE schema.table_name ADD column_name TEXT;"=vec![Type::Keyword(Keyword::ALTER)],
+
+        alter_drop_column:r"ALTER TABLE schema.table_name DROP COLUMN column_name;"=vec![Type::Keyword(Keyword::ALTER)],
+        alter_drop_column_without_column_keyword:r"ALTER TABLE schema.table_name DROP column_name;"=vec![Type::Keyword(Keyword::ALTER)]
+    }
 }
 
 #[cfg(test)]
@@ -293,5 +307,12 @@ mod should_fail {
 
         reindex_schema_name_no_table_or_index:r"REINDEX schema_name.;",
         reindex_collation_name_literal:r"REINDEX 25;"
+    }
+
+    test_group_fail! {
+        alter_stmt,
+
+        alter_no_table_after_alter:r"ALTER;",
+        alter_no_tablename:r"ALTER TABLE;"
     }
 }

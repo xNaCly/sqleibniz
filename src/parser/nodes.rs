@@ -1,4 +1,13 @@
-use crate::types::{Keyword, Token};
+use crate::types::{storage::SqliteStorageClass, Keyword, Token};
+
+/// SchemaTableContainer contains either schema_name.table_name or table_name
+#[derive(Debug)]
+pub enum SchemaTableContainer {
+    /// schema_name.table_name
+    SchemaAndTable { schema: String, table: String },
+    /// table_name
+    Table(String),
+}
 
 /// Generates a Node from the given input:
 ///
@@ -137,9 +146,8 @@ node!(
 
 node!(
     Analyze,
-    "Analyze stmt, see: https://www.sqlite.org/syntax/lang_analyze.html",
-    schema_index_or_table_name: Option<String>,
-    schema_with_table_or_index_name: Option<String>
+    "Analyze stmt, see: https://www.sqlite.org/lang_analyze.html",
+    target: Option<SchemaTableContainer>
 );
 
 node!(
@@ -172,5 +180,24 @@ node!(
 node!(
     Reindex,
     "Reindex stmt, see: https://www.sqlite.org/lang_reindex.html",
-    collation_or_schema: Option<String>
+    target: Option<SchemaTableContainer>
+);
+
+node!(
+    Alter,
+    "Alter stmt, see: https://www.sqlite.org/lang_altertable.html
+SQLite supports a limited subset of ALTER TABLE. The ALTER TABLE command in SQLite allows these alterations of an existing table: it can be renamed; a column can be renamed; a column can be added to it; or a column can be dropped from it.",
+    target: SchemaTableContainer,
+    rename_to: Option<String>,
+    rename_column_target: Option<String>,
+    new_column_name: Option<String>,
+    add_column: Option<ColumnDef>, // TODO: think about a data structure for this
+    drop_column: Option<String>
+);
+
+node!(
+    ColumnDef,
+    "Column definition, see: https://www.sqlite.org/syntax/column-def.html",
+    name: String,
+    type_name: Option<SqliteStorageClass> // equivalent to type_name: https://www.sqlite.org/syntax/type-name.html
 );

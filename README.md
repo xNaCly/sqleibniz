@@ -44,36 +44,36 @@ dynamic correctness. See below for a list of currently implemented features.
 
 ### Supported sql statements
 
-| done | `sqlite`-syntax name        | sql example                            | non-standard sql |
-| ---- | --------------------------- | -------------------------------------- | ---------------- |
-| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                  |                  |
-|      | `alter-table-stmt`          |                                        |                  |
-| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                    |                  |
-| ✅   | `attach-stmt`               | `ATTACH DATABASE 'users.db' AS users;` |                  |
-| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`          |                  |
-| ✅   | `commit-stmt`               | `END TRANSACTION;`                     |                  |
-|      | `create-index-stmt`         |                                        |                  |
-|      | `create-table-stmt`         |                                        |                  |
-|      | `create-trigger-stmt`       |                                        |                  |
-|      | `create-view-stmt`          |                                        |                  |
-|      | `create-virtual-table-stmt` |                                        |                  |
-|      | `delete-stmt`               |                                        |                  |
-|      | `delete-stmt-limited`       |                                        |                  |
-| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`          |                  |
-| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`                 |                  |
-| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`                 |                  |
-| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`             |                  |
-| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                   |                  |
-|      | `insert-stmt`               |                                        |                  |
-|      | `pragma-stmt`               |                                        | sqlite specific  |
-| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`           |                  |
-| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint`   |                  |
-| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`        |                  |
-| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`           |                  |
-|      | `select-stmt`               |                                        |                  |
-|      | `update-stmt`               |                                        |                  |
-|      | `update-stmt-limited`       |                                        |                  |
-| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`            |                  |
+| done | `sqlite`-syntax name        | sql example                                               | non-standard sql |
+| ---- | --------------------------- | --------------------------------------------------------- | ---------------- |
+| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                                     |                  |
+| ✅   | `alter-table-stmt`          | `ALTER TABLE schema.table_name ADD new_column_name TEXT;` |                  |
+| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                                       |                  |
+| ✅   | `attach-stmt`               | `ATTACH DATABASE 'users.db' AS users;`                    |                  |
+| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`                             |                  |
+| ✅   | `commit-stmt`               | `END TRANSACTION;`                                        |                  |
+|      | `create-index-stmt`         |                                                           |                  |
+|      | `create-table-stmt`         |                                                           |                  |
+|      | `create-trigger-stmt`       |                                                           |                  |
+|      | `create-view-stmt`          |                                                           |                  |
+|      | `create-virtual-table-stmt` |                                                           |                  |
+|      | `delete-stmt`               |                                                           |                  |
+|      | `delete-stmt-limited`       |                                                           |                  |
+| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`                             |                  |
+| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`                                    |                  |
+| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`                                    |                  |
+| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`                                |                  |
+| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                                      |                  |
+|      | `insert-stmt`               |                                                           |                  |
+|      | `pragma-stmt`               |                                                           | sqlite specific  |
+| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`                              |                  |
+| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint`                      |                  |
+| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`                           |                  |
+| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`                              |                  |
+|      | `select-stmt`               |                                                           |                  |
+|      | `update-stmt`               |                                                           |                  |
+|      | `update-stmt-limited`       |                                                           |                  |
+| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`                               |                  |
 
 ## Installation
 

@@ -2,6 +2,7 @@ pub mod config;
 pub mod ctx;
 mod keyword;
 pub mod rules;
+pub mod storage;
 
 #[allow(unused_imports)]
 /// this shit is really fucking idiotic, but i have to reexport
