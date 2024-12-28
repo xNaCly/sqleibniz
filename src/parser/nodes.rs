@@ -48,7 +48,6 @@ macro_rules! node {
         pub struct $node_name {
             /// predefined for all structures defined with the node! macro, holds the token of the ast node
             pub t: Token,
-            pub children: Option<Vec<Box<dyn Node>>>,
             $(
                 pub $field_name: $field_type,
             )*
@@ -58,10 +57,6 @@ macro_rules! node {
                 &self.t
             }
 
-            fn children(&self) -> &Option<Vec<Box<dyn Node>>> {
-                &self.children
-            }
-
             #[cfg(feature = "trace")]
             fn display(&self, indent: usize) {
                 print!("{}- {}({:?})", " ".repeat(indent), self.name(), self.t.ttype);
@@ -69,11 +64,6 @@ macro_rules! node {
                     print!(" [{}={:?}] ", stringify!($field_name), self.$field_name);
                 )*
                 println!();
-                if let Some(children) = &self.children {
-                    for child in children {
-                        child.display(indent+1)
-                    }
-                }
             }
 
             fn name(&self) -> &str {
@@ -88,7 +78,6 @@ pub trait Node: std::fmt::Debug {
     #[cfg(feature = "trace")]
     fn display(&self, indent: usize);
     fn name(&self) -> &str;
-    fn children(&self) -> &Option<Vec<Box<dyn Node>>>;
     // TODO: every node should analyse its own contents after the ast was build, to do so the Node
     // trait should enforce a analyse(&self, ctx &types::ctx::Context) -> Vec<Error> function.
 }
@@ -118,6 +107,7 @@ node!(
 node!(
     Explain,
     "Explain stmt, see: https://www.sqlite.org/lang_explain.html",
+    child: Box<dyn Node>
 );
 
 node!(Vacuum,"Vacuum stmt, see: https://www.sqlite.org/lang_vacuum.html", schema_name: Option<Token>, filename: Option<Token>);
