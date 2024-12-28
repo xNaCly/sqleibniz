@@ -42,38 +42,36 @@ dynamic correctness. See below for a list of currently implemented features.
   - [x] scripting to hook into node analysis for custom diagnostics
   - [ ] execute hooks when encountering the defined node while analysing
 
-### Supported sql statements
+### Supported Sql statements
 
-| done | `sqlite`-syntax name        | sql example                                               | non-standard sql |
-| ---- | --------------------------- | --------------------------------------------------------- | ---------------- |
-| ✅   | `explain-stmt`              | `EXPLAIN QUERY PLAN;`                                     |                  |
-| ✅   | `alter-table-stmt`          | `ALTER TABLE schema.table_name ADD new_column_name TEXT;` |                  |
-| ✅   | `analyze-stmt`              | `ANALYZE my_table;`                                       |                  |
-| ✅   | `attach-stmt`               | `ATTACH DATABASE 'users.db' AS users;`                    |                  |
-| ✅   | `begin-stmt`                | `BEGIN DEFERRED TRANSACTION;`                             |                  |
-| ✅   | `commit-stmt`               | `END TRANSACTION;`                                        |                  |
-|      | `create-index-stmt`         |                                                           |                  |
-|      | `create-table-stmt`         |                                                           |                  |
-|      | `create-trigger-stmt`       |                                                           |                  |
-|      | `create-view-stmt`          |                                                           |                  |
-|      | `create-virtual-table-stmt` |                                                           |                  |
-|      | `delete-stmt`               |                                                           |                  |
-|      | `delete-stmt-limited`       |                                                           |                  |
-| ✅   | `detach-stmt`               | `DETACH DATABASE my_database`                             |                  |
-| ✅   | `drop-index-stmt`           | `DROP INDEX my_index;`                                    |                  |
-| ✅   | `drop-table-stmt`           | `DROP TABLE my_table;`                                    |                  |
-| ✅   | `drop-trigger-stmt`         | `DROP TRIGGER my_trigger;`                                |                  |
-| ✅   | `drop-view-stmt`            | `DROP VIEW my_view;`                                      |                  |
-|      | `insert-stmt`               |                                                           |                  |
-|      | `pragma-stmt`               |                                                           | sqlite specific  |
-| ✅   | `reindex-stmt`              | `REINDEX my_schema.my_table`                              |                  |
-| ✅   | `release-stmt`              | `RELEASE SAVEPOINT latest_savepoint`                      |                  |
-| ✅   | `rollback-stmt`             | `ROLLBACK TO latest_savepoint;`                           |                  |
-| ✅   | `savepoint-stmt`            | `SAVEPOINT latest_savepoint`                              |                  |
-|      | `select-stmt`               |                                                           |                  |
-|      | `update-stmt`               |                                                           |                  |
-|      | `update-stmt-limited`       |                                                           |                  |
-| ✅   | `vacuum-stmt`               | `VACUUM INTO 'repacked.db'`                               |                  |
+| `sqlite` specification                                                     | syntax analysis | semantic analysis | Example                                                   |
+| -------------------------------------------------------------------------- | --------------- | ----------------- | --------------------------------------------------------- |
+| [`explain-stmt`](https://www.sqlite.org/lang_explain.html)                 | ✅              | ❌                | `EXPLAIN QUERY PLAN;`                                     |
+| [`alter-table-stmt`](https://www.sqlite.org/lang_altertable.html)          | ✅              | ❌                | `ALTER TABLE schema.table_name ADD new_column_name TEXT;` |
+| [`analyze-stmt`](https://www.sqlite.org/lang_analyze.html)                 | ✅              | ❌                | `ANALYZE my_table;`                                       |
+| [`attach-stmt`](https://www.sqlite.org/lang_attach.html)                   | ✅              | ❌                | `ATTACH DATABASE 'users.db' AS users;`                    |
+| [`begin-stmt`](https://www.sqlite.org/lang_transaction.html)               | ✅              | ❌                | `BEGIN DEFERRED TRANSACTION;`                             |
+| [`commit-stmt`](https://www.sqlite.org/lang_transaction.html)              | ✅              | ❌                | `END TRANSACTION;`                                        |
+| [`create-index-stmt`](https://www.sqlite.org/lang_createindex.html)        | ❌              | ❌                |                                                           |
+| [`create-table-stmt`](https://www.sqlite.org/lang_createtable.html)        | ❌              | ❌                |                                                           |
+| [`create-trigger-stmt`](https://www.sqlite.org/lang_createtrigger.html)    | ❌              | ❌                |                                                           |
+| [`create-view-stmt`](https://www.sqlite.org/lang_createview.html)          | ❌              | ❌                |                                                           |
+| [`create-virtual-table-stmt`](https://www.sqlite.org/lang_createvtab.html) | ❌              | ❌                |                                                           |
+| [`delete-stmt`](https://www.sqlite.org/lang_delete.html)                   | ❌              | ❌                |                                                           |
+| [`detach-stmt`](https://www.sqlite.org/lang_detach.html)                   | ✅              | ❌                | `DETACH DATABASE my_database`                             |
+| [`drop-index-stmt`](https://www.sqlite.org/lang_dropindex.html)            | ✅              | ❌                | `DROP INDEX my_index;`                                    |
+| [`drop-table-stmt`](https://www.sqlite.org/lang_droptable.html)            | ✅              | ❌                | `DROP TABLE my_table;`                                    |
+| [`drop-trigger-stmt`](https://www.sqlite.org/lang_droptrigger.html)        | ✅              | ❌                | `DROP TRIGGER my_trigger;`                                |
+| [`drop-view-stmt`](https://www.sqlite.org/lang_dropview.html)              | ✅              | ❌                | `DROP VIEW my_view;`                                      |
+| [`insert-stmt`](https://www.sqlite.org/lang_insert.html)                   | ❌              | ❌                |                                                           |
+| [`pragma-stmt`](https://www.sqlite.org/pragma.html)                        | ❌              | ❌                |                                                           |
+| [`reindex-stmt`](https://www.sqlite.org/lang_reindex.html)                 | ✅              | ❌                | `REINDEX my_schema.my_table`                              |
+| [`release-stmt`](https://www.sqlite.org/lang_savepoint.html)               | ✅              | ❌                | `RELEASE SAVEPOINT latest_savepoint`                      |
+| [`rollback-stmt`](https://www.sqlite.org/lang_transaction.html)            | ✅              | ❌                | `ROLLBACK TO latest_savepoint;`                           |
+| [`savepoint-stmt`](https://www.sqlite.org/lang_savepoint.html)             | ✅              | ❌                | `SAVEPOINT latest_savepoint`                              |
+| [`select-stmt`](https://www.sqlite.org/lang_select.html)                   | ❌              | ❌                |                                                           |
+| [`update-stmt`](https://www.sqlite.org/lang_update.html)                   | ❌              | ❌                |                                                           |
+| [`vacuum-stmt`](https://www.sqlite.org/lang_vacuum.html)                   | ✅              | ❌                | `VACUUM INTO 'repacked.db'`                               |
 
 ## Installation
 
