@@ -189,5 +189,8 @@ node!(
     ColumnDef,
     "Column definition, see: https://www.sqlite.org/syntax/column-def.html",
     name: String,
-    type_name: Option<SqliteStorageClass> // equivalent to type_name: https://www.sqlite.org/syntax/type-name.html
+    // equivalent to type_name: https://www.sqlite.org/syntax/type-name.html
+    type_name: Option<SqliteStorageClass>
+    // TODO: should i include this in analyis?
+    // constraint: Option<()>
 );

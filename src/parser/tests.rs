@@ -180,6 +180,304 @@ EXPLAIN VACUUM;
         alter_drop_column:r"ALTER TABLE schema.table_name DROP COLUMN column_name;"=vec![Type::Keyword(Keyword::ALTER)],
         alter_drop_column_without_column_keyword:r"ALTER TABLE schema.table_name DROP column_name;"=vec![Type::Keyword(Keyword::ALTER)]
     }
+
+    test_group_pass_assert! {
+        column_constraint,
+
+
+        primary_key_no_order_no_conflict_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_no_conflict_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            ASC;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_desc_no_conflict_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_rollback_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT ROLLBACK;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_abort_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT ABORT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_fail_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT FAIL;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_ignore_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT IGNORE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_replace_no_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT REPLACE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        primary_key_asc_conflict_replace_autoincrement:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            PRIMARY KEY
+            DESC
+            ON CONFLICT REPLACE
+            AUTOINCREMENT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        not_null_no_conflict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            NOT NULL;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        // i am not retesting the conflicts here, because i tested all cases above
+        not_null_conflict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            NOT NULL ON CONFLICT REPLACE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        unique_no_conflict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            UNIQUE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        unique_conflict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            UNIQUE ON CONFLICT REPLACE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        check:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            CHECK ('literal string lol');
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        default_expr:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            DEFAULT ('default string');
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        default_literal:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            DEFAULT 'literal';
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        default_signed_number:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            DEFAULT 25;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        collate:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            COLLATE collation_name;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        generated_always_as_expr_stored:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            GENERATED ALWAYS AS ('literal') STORED;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        generated_always_as_expr_virtual:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            GENERATED ALWAYS AS ('literal') VIRTUAL;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        generated_always_as_expr_no_postfix:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            GENERATED ALWAYS AS ('literal');
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        as_expr_no_postfix:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            AS ('literal');
+        "=vec![Type::Keyword(Keyword::ALTER)]
+    }
+
+    test_group_pass_assert! {
+        foreign_key_clause,
+
+        references_with_optional_column_names:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table (colum1, colum2);
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_with_optional_column_name:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table (colum1);
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_delete_set_null:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON DELETE SET NULL;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_delete_set_default:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON DELETE SET DEFAULT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_delete_cascade:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON DELETE CASCADE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_delete_restrict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON DELETE RESTRICT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_delete_no_action:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON DELETE NO ACTION;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_update_set_null:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON UPDATE SET NULL;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_update_set_default:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON UPDATE SET DEFAULT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_update_cascade:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON UPDATE CASCADE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_update_restrict:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON UPDATE RESTRICT;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_on_update_no_action:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table ON UPDATE NO ACTION;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_match_name:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table MATCH name;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_deferrable:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table DEFERRABLE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_not_deferrable:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table NOT DEFERRABLE;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_not_deferrable_initially_deferred:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table NOT DEFERRABLE INITIALLY DEFERRED;
+        "=vec![Type::Keyword(Keyword::ALTER)],
+
+        references_not_deferrable_initially_immediate:r"
+            ALTER TABLE schema.table_name 
+            ADD COLUMN column_name TEXT 
+            -- constraint:
+            REFERENCES foreign_table NOT DEFERRABLE INITIALLY IMMEDIATE;
+        "=vec![Type::Keyword(Keyword::ALTER)]
+    }
 }
 
 #[cfg(test)]
