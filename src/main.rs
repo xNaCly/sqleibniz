@@ -50,8 +50,12 @@ struct Cli {
 }
 
 fn configuration(lua: &mlua::Lua, file_name: &str) -> Result<Config, String> {
-    let conf_str = fs::read_to_string(file_name)
-        .map_err(|err| format!("Failed to read configuration file '{}': {}", file_name, err))?;
+    let conf_str = fs::read_to_string(file_name).map_err(|err| {
+        format!(
+            "Issue trying to read configuration from '{}': [{}], falling back to default configuration",
+            file_name, err
+        )
+    })?;
     let globals = lua.globals();
     lua.load(conf_str)
         .set_name(file_name)

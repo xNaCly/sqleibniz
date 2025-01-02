@@ -1,5 +1,3 @@
-use std::collections::btree_map::Keys;
-
 use nodes::{BindParameter, SchemaTableContainer};
 #[cfg(feature = "trace")]
 use tracer::Tracer;
