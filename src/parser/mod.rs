@@ -1,4 +1,5 @@
 use nodes::{BindParameter, SchemaTableContainer};
+
 #[cfg(feature = "trace")]
 use tracer::Tracer;
 
@@ -7,8 +8,10 @@ use crate::{
     types::{rules::Rule, storage::SqliteStorageClass, Keyword, Token, Type},
 };
 
+/// nodes holds all abstract syntax tree nodes, the node! macro, the lua preparation for the plugin execution and the sqleibniz analysis
 mod nodes;
 mod tests;
+/// tracer contains the logic for debugging both the parser parser and its results, both can be enabled via the 'trace' feature
 mod tracer;
 
 /// prints a parser function call trace if #[cfg(feature = "trace")]
@@ -233,403 +236,6 @@ impl<'a> Parser<'a> {
             self.skip_until_semicolon_or_eof();
             None
         }
-    }
-
-    /// wraps [Parser::schema_table_container], returns a Result containing an Error if [Parser::schema_table_container] returns Option::None
-    fn schema_table_container_ok(
-        &mut self,
-        doc: &'static str,
-    ) -> Result<SchemaTableContainer, Error> {
-        match self.schema_table_container() {
-            Some(t) => Ok(t),
-            None => {
-                let cur = match self.cur() {
-                    Some(cur) => cur,
-                    None => match self.tokens.get(self.pos-1) {
-                        Some(prev) => prev,
-                        None => panic!("Parser::tokens::get(Parser::pos-1) is Option::None at Parser::schema_table_container_ok(), this should not happen")
-                    }
-                };
-                let mut err = self.err(
-                    "Missing schema_name or table_name",
-                    &format!(
-                        "expected either Ident(<schema_name.table_name>) or Ident(<table_name>) at this point, got {:?}",
-                        cur.ttype
-                    ),
-                    cur,
-                    Rule::Syntax,
-                );
-                err.doc_url = Some(doc);
-                Err(err)
-            }
-        }
-    }
-
-    /// parses schema_name.table_name and table_name, this does only emit errors for syntax issues, otherwise, use [Parser::schema_table_container_ok]
-    fn schema_table_container(&mut self) -> Option<SchemaTableContainer> {
-        match self.cur()?.ttype.clone() {
-            Type::Ident(schema) if self.next_is(Type::Dot) => {
-                // skip schema_name
-                self.advance();
-                // skip Type::Dot
-                self.advance();
-                if let Type::Ident(table) = self.cur()?.ttype.clone() {
-                    // skip table_name
-                    self.advance();
-                    Some(SchemaTableContainer::SchemaAndTable { schema, table })
-                } else {
-                    // we got schema_name. but no identifier following? this is a syntax error (i
-                    // think?)
-                    self.errors.push(self.err(
-                        "Missing table_name",
-                        &format!(
-                            "expected a Ident(<table_name>) after getting Ident(<schema_name>) and Type::Dot ('.'), got {:?}",
-                            self.cur()?.ttype
-                        ),
-                        self.cur()?,
-                        Rule::Syntax,
-                    ));
-                    // skip wrong token
-                    self.advance();
-                    None
-                }
-            }
-            Type::Ident(table_name) => {
-                // skip table_name
-                self.advance();
-                Some(SchemaTableContainer::Table(table_name))
-            }
-            _ => None,
-        }
-    }
-
-    /// https://www.sqlite.org/syntax/conflict-clause.html
-    fn conflict_clause(&mut self) -> Option<()> {
-        if self.is_keyword(Keyword::ON) {
-            self.advance();
-            self.consume_keyword(Keyword::CONFLICT);
-            if let Type::Keyword(keyword) = &self.cur()?.ttype {
-                match keyword {
-                    Keyword::ROLLBACK
-                    | Keyword::ABORT
-                    | Keyword::FAIL
-                    | Keyword::IGNORE
-                    | Keyword::REPLACE => (),
-                    _ => {
-                        let mut err = self.err(
-                            "Unexpected Keyword",
-                            &format!(
-                                "Wanted either ROLLBACK, ABORT, FAIL, IGNORE or REPLACE after ON CONFLICT, got {:?}.",
-                                self.cur()?.ttype
-                            ),
-                            self.cur()?,
-                            Rule::Syntax,
-                        );
-                        err.doc_url = Some("https://www.sqlite.org/syntax/conflict-clause.html");
-                        self.errors.push(err);
-                    }
-                }
-            } else {
-                let mut err = self.err(
-                    "Unexpected Token",
-                    &format!(
-                        "Wanted a Keyword at this point, got {:?}.",
-                        self.cur()?.ttype
-                    ),
-                    self.cur()?,
-                    Rule::Syntax,
-                );
-                err.doc_url = Some("https://www.sqlite.org/syntax/conflict-clause.html");
-                self.errors.push(err);
-            }
-            self.advance();
-        }
-        None
-    }
-
-    /// https://www.sqlite.org/syntax/foreign-key-clause.html but specifically the ON and MATCH
-    /// blocks
-    fn foreign_key_clause_on_and_match(&mut self) -> Option<()> {
-        if self.is_keyword(Keyword::ON) {
-            self.advance();
-            match self.cur()?.ttype {
-                Type::Keyword(Keyword::DELETE) | Type::Keyword(Keyword::UPDATE) => (),
-                _ => {
-                    let mut err = self.err(
-                        "Unexpected Token",
-                        &format!("Wanted DELETE or UPDATE, got {:?}.", self.cur()?.ttype),
-                        self.cur()?,
-                        Rule::Syntax,
-                    );
-                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
-                    self.errors.push(err);
-                }
-            };
-            self.advance();
-            match &self.cur()?.ttype {
-                Type::Keyword(keyword) => match keyword {
-                    Keyword::SET => {
-                        self.advance();
-                        if !(self.is_keyword(Keyword::NULL) || self.is_keyword(Keyword::DEFAULT)) {
-                            let mut err = self.err(
-                                "Unexpected Token",
-                                &format!(
-                                    "Wanted NULL or DEFAULT after SET, got {:?}.",
-                                    self.cur()?.ttype
-                                ),
-                                self.cur()?,
-                                Rule::Syntax,
-                            );
-                            err.doc_url =
-                                Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
-                            self.errors.push(err);
-                        }
-                        self.advance();
-                    }
-                    Keyword::CASCADE | Keyword::RESTRICT => self.advance(),
-                    Keyword::NO => {
-                        self.advance();
-                        self.consume_keyword(Keyword::ACTION);
-                    }
-                    _ => {
-                        let mut err = self.err(
-                            "Unexpected Token",
-                            &format!(
-                                "Wanted SET, CASCADE, RESTRICT or NO after ON DELETE/UPDATE, got {:?}.",
-                                self.cur()?.ttype
-                            ),
-                            self.cur()?,
-                            Rule::Syntax,
-                        );
-                        err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
-                        self.errors.push(err);
-                        self.advance();
-                    }
-                },
-                _ => {
-                    let mut err = self.err(
-                        "Unexpected Token",
-                        &format!(
-                            "Wanted SET, CASCADE, RESTRICT or NO after ON DELETE/UPDATE, got {:?}.",
-                            self.cur()?.ttype
-                        ),
-                        self.cur()?,
-                        Rule::Syntax,
-                    );
-                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
-                    self.errors.push(err);
-                    self.advance();
-                }
-            }
-            self.foreign_key_clause_on_and_match()
-        } else if self.is_keyword(Keyword::MATCH) {
-            self.advance();
-            self.consume_ident(
-                "https://www.sqlite.org/syntax/foreign-key-clause.html",
-                "name",
-            );
-            self.foreign_key_clause_on_and_match()
-        } else {
-            None
-        }
-    }
-
-    /// https://www.sqlite.org/syntax/foreign-key-clause.html
-    fn foreign_key_clause(&mut self) -> Option<()> {
-        self.consume_keyword(Keyword::REFERENCES);
-        self.consume_ident(
-            "https://www.sqlite.org/syntax/foreign-key-clause.html",
-            "foreign_table",
-        );
-
-        if self.is(Type::BraceLeft) {
-            self.advance();
-            loop {
-                self.consume_ident(
-                    "https://www.sqlite.org/syntax/foreign-key-clause.html",
-                    "column_name",
-                );
-                // if next token is an identifier, we require a comma
-                if let Type::Ident(_) = self.tokens.get(self.pos + 1)?.ttype {
-                    self.consume(Type::Comma);
-                } else {
-                    break;
-                }
-            }
-            self.consume(Type::BraceRight);
-        }
-
-        self.foreign_key_clause_on_and_match();
-
-        if self.is_keyword(Keyword::NOT) || self.is_keyword(Keyword::DEFERRABLE) {
-            if self.is_keyword(Keyword::NOT) {
-                self.advance();
-            }
-            self.consume_keyword(Keyword::DEFERRABLE);
-            if self.is_keyword(Keyword::INITIALLY) {
-                self.advance();
-                if !(self.is_keyword(Keyword::DEFERRED) || self.is_keyword(Keyword::IMMEDIATE)) {
-                    let mut err = self.err(
-                        "Unexpected Keyword",
-                        &format!(
-                            "Wanted DEFERRED or IMMEDIATE after DEFERRABLE INITIALLY, got {:?}.",
-                            self.cur()?.ttype
-                        ),
-                        self.cur()?,
-                        Rule::Syntax,
-                    );
-                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
-                    self.errors.push(err);
-                }
-                self.advance();
-            }
-            None
-        } else {
-            None
-        }
-    }
-
-    /// https://www.sqlite.org/syntax/column-def.html
-    fn column_def(&mut self) -> Option<nodes::ColumnDef> {
-        trace!(self.tracer, "column_def", self.cur());
-        let mut def = nodes::ColumnDef {
-            t: self.cur()?.clone(),
-
-            name: String::new(),
-            type_name: None,
-        };
-
-        def.name = self.consume_ident("https://www.sqlite.org/syntax/column-def.html", "name")?;
-
-        // we got a type_name: https://www.sqlite.org/syntax/type-name.html
-        while let Type::Ident(name) = &self.cur()?.ttype {
-            def.type_name = Some(SqliteStorageClass::from_str(&name));
-            // skip ident
-            self.advance();
-            if self.is(Type::BraceLeft) {
-                // skip Type::BraceLeft
-                self.advance();
-                if let Type::Number(_) = self.cur()?.ttype {
-                    self.advance();
-                } else {
-                    let mut err = self.err(
-                        "Unexpected Token",
-                        &format!(
-                            "Wanted a Number after Type::BraceLeft, got {:?}.",
-                            self.cur()?.ttype
-                        ),
-                        self.cur()?,
-                        Rule::Syntax,
-                    );
-                    err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
-                    self.errors.push(err);
-                    self.advance();
-                }
-
-                if self.is(Type::Comma) {
-                    self.advance();
-                    if let Type::Number(_) = self.cur()?.ttype {
-                        self.advance();
-                    } else {
-                        let mut err = self.err(
-                            "Unexpected Token",
-                            &format!(
-                                "Wanted a Number after Type::BraceLeft, Type::Number and Type::Comma, got {:?}.",
-                                self.cur()?.ttype
-                            ),
-                            self.cur()?,
-                            Rule::Syntax,
-                        );
-                        err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
-                        self.errors.push(err);
-                        self.advance();
-                    }
-                }
-                self.consume(Type::BraceRight);
-            }
-        }
-
-        // column_constraint: https://www.sqlite.org/syntax/column-constraint.html
-        while !self.is_eof()
-            && matches!(
-                self.cur()?.ttype,
-                Type::Keyword(Keyword::CONSTRAINT)
-                    | Type::Keyword(Keyword::PRIMARY)
-                    | Type::Keyword(Keyword::NOT)
-                    | Type::Keyword(Keyword::UNIQUE)
-                    | Type::Keyword(Keyword::CHECK)
-                    | Type::Keyword(Keyword::DEFAULT)
-                    | Type::Keyword(Keyword::COLLATE)
-                    | Type::Keyword(Keyword::REFERENCES)
-                    | Type::Keyword(Keyword::GENERATED)
-                    | Type::Keyword(Keyword::AS)
-            )
-        {
-            if self.is_keyword(Keyword::CONSTRAINT) {
-                self.advance();
-                // info
-                self.consume_ident(
-                    "https://www.sqlite.org/syntax/column-constraint.html",
-                    "name",
-                );
-            }
-
-            if self.is_keyword(Keyword::PRIMARY) {
-                self.advance();
-                self.consume_keyword(Keyword::KEY);
-                if self.is_keyword(Keyword::ASC) || self.is_keyword(Keyword::DESC) {
-                    self.advance();
-                }
-                self.conflict_clause();
-                if self.is_keyword(Keyword::AUTOINCREMENT) {
-                    self.advance();
-                }
-            } else if self.is_keyword(Keyword::NOT) {
-                self.advance();
-                self.consume_keyword(Keyword::NULL);
-                self.conflict_clause();
-            } else if self.is_keyword(Keyword::UNIQUE) {
-                self.advance();
-                self.conflict_clause();
-            } else if self.is_keyword(Keyword::CHECK) {
-                self.advance();
-                self.consume(Type::BraceLeft);
-                self.expr();
-                self.consume(Type::BraceRight);
-            } else if self.is_keyword(Keyword::DEFAULT) {
-                self.advance();
-                if self.is(Type::BraceLeft) {
-                    self.advance();
-                    self.expr();
-                    self.consume(Type::BraceRight);
-                } else {
-                    self.literal_value();
-                }
-            } else if self.is_keyword(Keyword::COLLATE) {
-                self.advance();
-                self.consume_ident(
-                    "https://www.sqlite.org/syntax/column-constraint.html",
-                    "collation_name",
-                );
-            } else if self.is_keyword(Keyword::REFERENCES) {
-                self.foreign_key_clause();
-            } else if self.is_keyword(Keyword::GENERATED) || self.is_keyword(Keyword::AS) {
-                if self.is_keyword(Keyword::GENERATED) {
-                    self.advance();
-                    self.consume_keyword(Keyword::ALWAYS);
-                }
-                self.consume_keyword(Keyword::AS);
-                self.consume(Type::BraceLeft);
-                self.expr();
-                self.consume(Type::BraceRight);
-                if self.is_keyword(Keyword::STORED) || self.is_keyword(Keyword::VIRTUAL) {
-                    self.advance();
-                }
-            }
-        }
-
-        detrace!(self.tracer);
-        Some(def)
     }
 
     pub fn parse(&mut self) -> Vec<Option<Box<dyn nodes::Node>>> {
@@ -1492,5 +1098,402 @@ impl<'a> Parser<'a> {
             }
         }
         Some(e)
+    }
+
+    /// wraps [Parser::schema_table_container], returns a Result containing an Error if [Parser::schema_table_container] returns Option::None
+    fn schema_table_container_ok(
+        &mut self,
+        doc: &'static str,
+    ) -> Result<SchemaTableContainer, Error> {
+        match self.schema_table_container() {
+            Some(t) => Ok(t),
+            None => {
+                let cur = match self.cur() {
+                    Some(cur) => cur,
+                    None => match self.tokens.get(self.pos-1) {
+                        Some(prev) => prev,
+                        None => panic!("Parser::tokens::get(Parser::pos-1) is Option::None at Parser::schema_table_container_ok(), this should not happen")
+                    }
+                };
+                let mut err = self.err(
+                    "Missing schema_name or table_name",
+                    &format!(
+                        "expected either Ident(<schema_name.table_name>) or Ident(<table_name>) at this point, got {:?}",
+                        cur.ttype
+                    ),
+                    cur,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some(doc);
+                Err(err)
+            }
+        }
+    }
+
+    /// parses schema_name.table_name and table_name, this does only emit errors for syntax issues, otherwise, use [Parser::schema_table_container_ok]
+    fn schema_table_container(&mut self) -> Option<SchemaTableContainer> {
+        match self.cur()?.ttype.clone() {
+            Type::Ident(schema) if self.next_is(Type::Dot) => {
+                // skip schema_name
+                self.advance();
+                // skip Type::Dot
+                self.advance();
+                if let Type::Ident(table) = self.cur()?.ttype.clone() {
+                    // skip table_name
+                    self.advance();
+                    Some(SchemaTableContainer::SchemaAndTable { schema, table })
+                } else {
+                    // we got schema_name. but no identifier following? this is a syntax error (i
+                    // think?)
+                    self.errors.push(self.err(
+                        "Missing table_name",
+                        &format!(
+                            "expected a Ident(<table_name>) after getting Ident(<schema_name>) and Type::Dot ('.'), got {:?}",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    ));
+                    // skip wrong token
+                    self.advance();
+                    None
+                }
+            }
+            Type::Ident(table_name) => {
+                // skip table_name
+                self.advance();
+                Some(SchemaTableContainer::Table(table_name))
+            }
+            _ => None,
+        }
+    }
+
+    /// https://www.sqlite.org/syntax/conflict-clause.html
+    fn conflict_clause(&mut self) -> Option<()> {
+        if self.is_keyword(Keyword::ON) {
+            self.advance();
+            self.consume_keyword(Keyword::CONFLICT);
+            if let Type::Keyword(keyword) = &self.cur()?.ttype {
+                match keyword {
+                    Keyword::ROLLBACK
+                    | Keyword::ABORT
+                    | Keyword::FAIL
+                    | Keyword::IGNORE
+                    | Keyword::REPLACE => (),
+                    _ => {
+                        let mut err = self.err(
+                            "Unexpected Keyword",
+                            &format!(
+                                "Wanted either ROLLBACK, ABORT, FAIL, IGNORE or REPLACE after ON CONFLICT, got {:?}.",
+                                self.cur()?.ttype
+                            ),
+                            self.cur()?,
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/syntax/conflict-clause.html");
+                        self.errors.push(err);
+                    }
+                }
+            } else {
+                let mut err = self.err(
+                    "Unexpected Token",
+                    &format!(
+                        "Wanted a Keyword at this point, got {:?}.",
+                        self.cur()?.ttype
+                    ),
+                    self.cur()?,
+                    Rule::Syntax,
+                );
+                err.doc_url = Some("https://www.sqlite.org/syntax/conflict-clause.html");
+                self.errors.push(err);
+            }
+            self.advance();
+        }
+        None
+    }
+
+    /// https://www.sqlite.org/syntax/foreign-key-clause.html but specifically the ON and MATCH
+    /// blocks
+    fn foreign_key_clause_on_and_match(&mut self) -> Option<()> {
+        if self.is_keyword(Keyword::ON) {
+            self.advance();
+            match self.cur()?.ttype {
+                Type::Keyword(Keyword::DELETE) | Type::Keyword(Keyword::UPDATE) => (),
+                _ => {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!("Wanted DELETE or UPDATE, got {:?}.", self.cur()?.ttype),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
+                    self.errors.push(err);
+                }
+            };
+            self.advance();
+            match &self.cur()?.ttype {
+                Type::Keyword(keyword) => match keyword {
+                    Keyword::SET => {
+                        self.advance();
+                        if !(self.is_keyword(Keyword::NULL) || self.is_keyword(Keyword::DEFAULT)) {
+                            let mut err = self.err(
+                                "Unexpected Token",
+                                &format!(
+                                    "Wanted NULL or DEFAULT after SET, got {:?}.",
+                                    self.cur()?.ttype
+                                ),
+                                self.cur()?,
+                                Rule::Syntax,
+                            );
+                            err.doc_url =
+                                Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
+                            self.errors.push(err);
+                        }
+                        self.advance();
+                    }
+                    Keyword::CASCADE | Keyword::RESTRICT => self.advance(),
+                    Keyword::NO => {
+                        self.advance();
+                        self.consume_keyword(Keyword::ACTION);
+                    }
+                    _ => {
+                        let mut err = self.err(
+                            "Unexpected Token",
+                            &format!(
+                                "Wanted SET, CASCADE, RESTRICT or NO after ON DELETE/UPDATE, got {:?}.",
+                                self.cur()?.ttype
+                            ),
+                            self.cur()?,
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
+                        self.errors.push(err);
+                        self.advance();
+                    }
+                },
+                _ => {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "Wanted SET, CASCADE, RESTRICT or NO after ON DELETE/UPDATE, got {:?}.",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
+                    self.errors.push(err);
+                    self.advance();
+                }
+            }
+            self.foreign_key_clause_on_and_match()
+        } else if self.is_keyword(Keyword::MATCH) {
+            self.advance();
+            self.consume_ident(
+                "https://www.sqlite.org/syntax/foreign-key-clause.html",
+                "name",
+            );
+            self.foreign_key_clause_on_and_match()
+        } else {
+            None
+        }
+    }
+
+    /// https://www.sqlite.org/syntax/foreign-key-clause.html
+    fn foreign_key_clause(&mut self) -> Option<()> {
+        self.consume_keyword(Keyword::REFERENCES);
+        self.consume_ident(
+            "https://www.sqlite.org/syntax/foreign-key-clause.html",
+            "foreign_table",
+        );
+
+        if self.is(Type::BraceLeft) {
+            self.advance();
+            loop {
+                self.consume_ident(
+                    "https://www.sqlite.org/syntax/foreign-key-clause.html",
+                    "column_name",
+                );
+                // if next token is an identifier, we require a comma
+                if let Type::Ident(_) = self.tokens.get(self.pos + 1)?.ttype {
+                    self.consume(Type::Comma);
+                } else {
+                    break;
+                }
+            }
+            self.consume(Type::BraceRight);
+        }
+
+        self.foreign_key_clause_on_and_match();
+
+        if self.is_keyword(Keyword::NOT) || self.is_keyword(Keyword::DEFERRABLE) {
+            if self.is_keyword(Keyword::NOT) {
+                self.advance();
+            }
+            self.consume_keyword(Keyword::DEFERRABLE);
+            if self.is_keyword(Keyword::INITIALLY) {
+                self.advance();
+                if !(self.is_keyword(Keyword::DEFERRED) || self.is_keyword(Keyword::IMMEDIATE)) {
+                    let mut err = self.err(
+                        "Unexpected Keyword",
+                        &format!(
+                            "Wanted DEFERRED or IMMEDIATE after DEFERRABLE INITIALLY, got {:?}.",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/foreign-key-clause.html");
+                    self.errors.push(err);
+                }
+                self.advance();
+            }
+            None
+        } else {
+            None
+        }
+    }
+
+    /// https://www.sqlite.org/syntax/column-def.html
+    fn column_def(&mut self) -> Option<nodes::ColumnDef> {
+        trace!(self.tracer, "column_def", self.cur());
+        let mut def = nodes::ColumnDef {
+            t: self.cur()?.clone(),
+
+            name: String::new(),
+            type_name: None,
+        };
+
+        def.name = self.consume_ident("https://www.sqlite.org/syntax/column-def.html", "name")?;
+
+        // we got a type_name: https://www.sqlite.org/syntax/type-name.html
+        while let Type::Ident(name) = &self.cur()?.ttype {
+            def.type_name = Some(SqliteStorageClass::from_str(&name));
+            // skip ident
+            self.advance();
+            if self.is(Type::BraceLeft) {
+                // skip Type::BraceLeft
+                self.advance();
+                if let Type::Number(_) = self.cur()?.ttype {
+                    self.advance();
+                } else {
+                    let mut err = self.err(
+                        "Unexpected Token",
+                        &format!(
+                            "Wanted a Number after Type::BraceLeft, got {:?}.",
+                            self.cur()?.ttype
+                        ),
+                        self.cur()?,
+                        Rule::Syntax,
+                    );
+                    err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
+                    self.errors.push(err);
+                    self.advance();
+                }
+
+                if self.is(Type::Comma) {
+                    self.advance();
+                    if let Type::Number(_) = self.cur()?.ttype {
+                        self.advance();
+                    } else {
+                        let mut err = self.err(
+                            "Unexpected Token",
+                            &format!(
+                                "Wanted a Number after Type::BraceLeft, Type::Number and Type::Comma, got {:?}.",
+                                self.cur()?.ttype
+                            ),
+                            self.cur()?,
+                            Rule::Syntax,
+                        );
+                        err.doc_url = Some("https://www.sqlite.org/syntax/type-name.html");
+                        self.errors.push(err);
+                        self.advance();
+                    }
+                }
+                self.consume(Type::BraceRight);
+            }
+        }
+
+        // column_constraint: https://www.sqlite.org/syntax/column-constraint.html
+        while !self.is_eof()
+            && matches!(
+                self.cur()?.ttype,
+                Type::Keyword(Keyword::CONSTRAINT)
+                    | Type::Keyword(Keyword::PRIMARY)
+                    | Type::Keyword(Keyword::NOT)
+                    | Type::Keyword(Keyword::UNIQUE)
+                    | Type::Keyword(Keyword::CHECK)
+                    | Type::Keyword(Keyword::DEFAULT)
+                    | Type::Keyword(Keyword::COLLATE)
+                    | Type::Keyword(Keyword::REFERENCES)
+                    | Type::Keyword(Keyword::GENERATED)
+                    | Type::Keyword(Keyword::AS)
+            )
+        {
+            if self.is_keyword(Keyword::CONSTRAINT) {
+                self.advance();
+                // info
+                self.consume_ident(
+                    "https://www.sqlite.org/syntax/column-constraint.html",
+                    "name",
+                );
+            }
+
+            if self.is_keyword(Keyword::PRIMARY) {
+                self.advance();
+                self.consume_keyword(Keyword::KEY);
+                if self.is_keyword(Keyword::ASC) || self.is_keyword(Keyword::DESC) {
+                    self.advance();
+                }
+                self.conflict_clause();
+                if self.is_keyword(Keyword::AUTOINCREMENT) {
+                    self.advance();
+                }
+            } else if self.is_keyword(Keyword::NOT) {
+                self.advance();
+                self.consume_keyword(Keyword::NULL);
+                self.conflict_clause();
+            } else if self.is_keyword(Keyword::UNIQUE) {
+                self.advance();
+                self.conflict_clause();
+            } else if self.is_keyword(Keyword::CHECK) {
+                self.advance();
+                self.consume(Type::BraceLeft);
+                self.expr();
+                self.consume(Type::BraceRight);
+            } else if self.is_keyword(Keyword::DEFAULT) {
+                self.advance();
+                if self.is(Type::BraceLeft) {
+                    self.advance();
+                    self.expr();
+                    self.consume(Type::BraceRight);
+                } else {
+                    self.literal_value();
+                }
+            } else if self.is_keyword(Keyword::COLLATE) {
+                self.advance();
+                self.consume_ident(
+                    "https://www.sqlite.org/syntax/column-constraint.html",
+                    "collation_name",
+                );
+            } else if self.is_keyword(Keyword::REFERENCES) {
+                self.foreign_key_clause();
+            } else if self.is_keyword(Keyword::GENERATED) || self.is_keyword(Keyword::AS) {
+                if self.is_keyword(Keyword::GENERATED) {
+                    self.advance();
+                    self.consume_keyword(Keyword::ALWAYS);
+                }
+                self.consume_keyword(Keyword::AS);
+                self.consume(Type::BraceLeft);
+                self.expr();
+                self.consume(Type::BraceRight);
+                if self.is_keyword(Keyword::STORED) || self.is_keyword(Keyword::VIRTUAL) {
+                    self.advance();
+                }
+            }
+        }
+
+        detrace!(self.tracer);
+        Some(def)
     }
 }
