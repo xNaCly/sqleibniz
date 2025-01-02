@@ -115,7 +115,9 @@ fn main() {
         match configuration(&lua, &args.config) {
             Ok(conf) => config = conf,
             Err(err) => {
-                error::warn(&err.to_string());
+                if !args.silent {
+                    error::warn(&err.to_string());
+                }
             }
         }
     }
