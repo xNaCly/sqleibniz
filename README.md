@@ -1,7 +1,7 @@
 # sqleibniz
 
-LSP and analysis cli for sql. Check for valid syntax,
-semantics and perform dynamic analysis.
+SQL LSP implementation and analysis tool. Check for valid
+syntax, semantics and perform dynamic analysis.
 
 > [!WARNING]  
 > Sqleibniz is in early stages of development, please keep this in mind before

@@ -402,6 +402,13 @@ impl<'a> Parser<'a> {
     //     detrace!(self.tracer);
     // }
 
+    /// https://www.sqlite.org/lang_createindex.html
+    fn create_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
+        trace!(self.tracer, "create_stmt", self.cur());
+        detrace!(self.tracer);
+        None
+    }
+
     /// https://www.sqlite.org/lang_altertable.html
     fn alter_stmt(&mut self) -> Option<Box<dyn nodes::Node>> {
         trace!(self.tracer, "alter_stmt", self.cur());

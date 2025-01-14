@@ -6,6 +6,8 @@ use std::{fs, process::exit, vec};
 use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
+use lsp_server::Connection;
+use lsp_types::{OneOf, ServerCapabilities};
 use types::config::Config;
 use types::rules::Rule;
 
@@ -47,6 +49,10 @@ struct Cli {
     #[arg(short = 'D')]
     #[clap(value_enum)]
     disable: Option<Vec<Rule>>,
+
+    /// invoke sqleibniz as a language server
+    #[arg(long)]
+    lsp: bool,
 }
 
 fn configuration(lua: &mlua::Lua, file_name: &str) -> Result<Config, String> {
@@ -84,6 +90,14 @@ struct FileResult {
 
 fn main() {
     let args = Cli::parse();
+
+    if args.lsp {
+        if let Err(e) = lsp::start() {
+            panic!("fatal error in language server: {}", e);
+        }
+        return;
+    }
+
     if args.paths.is_empty() {
         if !args.silent {
             error::err("no source file(s) provided, exiting");
