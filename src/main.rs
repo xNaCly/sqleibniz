@@ -6,8 +6,6 @@ use std::{fs, process::exit, vec};
 use clap::Parser;
 use error::{print_str_colored, warn};
 use lexer::Lexer;
-use lsp_server::Connection;
-use lsp_types::{OneOf, ServerCapabilities};
 use types::config::Config;
 use types::rules::Rule;
 
