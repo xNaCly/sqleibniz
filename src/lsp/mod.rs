@@ -4,10 +4,13 @@ mod handlers;
 use error::LspError;
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId};
 use lsp_types::{
-    notification::DidOpenTextDocument, request::HoverRequest, InitializeParams, ServerCapabilities,
+    notification::{DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument},
+    request::{DocumentDiagnosticRequest, HoverRequest},
+    DiagnosticOptions, InitializeParams, SaveOptions, ServerCapabilities, TextDocumentSyncKind,
+    TextDocumentSyncOptions,
 };
 
-use crate::{lexer::Lexer, types::Token};
+use crate::{lexer::Lexer, parser::Parser, types::Token};
 
 macro_rules! lsp_log {
     ($literal:literal) => {
@@ -19,11 +22,25 @@ pub fn start() -> Result<(), LspError> {
     lsp_log!("starting language server");
     let (connection, threads) = Connection::stdio();
     let capabilities = serde_json::to_value(&ServerCapabilities {
-        // TODO: add the real thing here (diagnostics, hover, etc)
         hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
-        // TODO: this should be incremental
-        text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Kind(
-            lsp_types::TextDocumentSyncKind::FULL,
+        diagnostic_provider: Some(lsp_types::DiagnosticServerCapabilities::Options(
+            DiagnosticOptions {
+                inter_file_dependencies: false,
+                workspace_diagnostics: false,
+                ..Default::default()
+            },
+        )),
+        text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Options(
+            TextDocumentSyncOptions {
+                open_close: Some(true),
+                change: Some(TextDocumentSyncKind::FULL),
+                save: Some(lsp_types::TextDocumentSyncSaveOptions::SaveOptions(
+                    SaveOptions {
+                        include_text: Some(true),
+                    },
+                )),
+                ..Default::default()
+            },
         )),
         ..Default::default()
     })
@@ -78,6 +95,22 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                             Err(err @ _) => panic!("{err:?}"),
                         };
                     }
+                    "textDocument/diagnostic" => {
+                        match cast::<DocumentDiagnosticRequest>(req) {
+                            Ok((id, params)) => {
+                                if let Err(e) = handlers::diagnostic::handle(
+                                    &connection,
+                                    errors.clone(),
+                                    id,
+                                    params,
+                                ) {
+                                    eprintln!("[sqleibniz]: err: {}", e);
+                                }
+                                continue;
+                            }
+                            Err(err @ _) => panic!("{err:?}"),
+                        };
+                    }
                     _ => lsp_log!("unsupported method"),
                 }
                 // ...
@@ -86,6 +119,22 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                 eprintln!("got response: {resp:?}");
             }
             Message::Notification(not) => match not.method.as_str() {
+                "textDocument/didChange" => {
+                    match cast_noti::<DidChangeTextDocument>(not) {
+                        Ok(params) => {
+                            let text = &(params.content_changes[0].text.clone().into_bytes());
+                            let formatted_path =
+                                params.text_document.uri.to_string().replace("file://", "");
+                            let mut l = Lexer::new(text, &formatted_path);
+                            tokens = l.run();
+                            errors = l.errors;
+                            let mut p = Parser::new(tokens.clone(), &formatted_path);
+                            let _ = p.parse();
+                            errors.append(&mut p.errors);
+                        }
+                        Err(err @ _) => panic!("failed to cast notification: {err:?}"),
+                    };
+                }
                 "textDocument/didOpen" => {
                     match cast_noti::<DidOpenTextDocument>(not) {
                         Ok(params) => {
@@ -94,9 +143,12 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                                 params.text_document.uri.to_string().replace("file://", "");
                             let mut l = Lexer::new(text, &formatted_path);
                             tokens = l.run();
-                            errors.append(&mut l.errors);
+                            errors = l.errors;
+                            let mut p = Parser::new(tokens.clone(), &formatted_path);
+                            let _ = p.parse();
+                            errors.append(&mut p.errors);
                         }
-                        Err(err @ _) => panic!("{err:?}"),
+                        Err(err @ _) => panic!("failed to cast notification: {err:?}"),
                     };
                 }
                 _ => lsp_log!("unsupported method"),

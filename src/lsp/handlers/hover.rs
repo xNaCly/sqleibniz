@@ -11,7 +11,7 @@ pub fn handle(
 ) -> Result<(), LspError> {
     eprintln!("got hover request #{id}");
     let Position { line, character } = params.text_document_position_params.position;
-    // TODO: build a good string
+    // TODO: build a better string with more information
     let text = match tokens
         .iter()
         .filter(|tok| {
