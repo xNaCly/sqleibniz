@@ -11,7 +11,6 @@ VACUUM schema_name;
 VACUUM INTO 'filename';
 VACUUM schema_name INTO 'filename';
 
-
 /* ---- https://www.sqlite.org/lang_transaction.html ---- */
 -- https://www.sqlite.org/syntax/begin-stmt.html
 BEGIN;
