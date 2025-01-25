@@ -4,7 +4,7 @@ mod handlers;
 use error::LspError;
 use lsp_server::{Connection, ExtractError, Message, Notification, Request, RequestId};
 use lsp_types::{
-    notification::{DidChangeTextDocument, DidOpenTextDocument, DidSaveTextDocument},
+    notification::{DidChangeTextDocument, DidOpenTextDocument},
     request::{DocumentDiagnosticRequest, HoverRequest},
     DiagnosticOptions, InitializeParams, SaveOptions, ServerCapabilities, TextDocumentSyncKind,
     TextDocumentSyncOptions,

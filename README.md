@@ -31,10 +31,11 @@ dynamic correctness. See below for a list of currently implemented features.
   - [x] ability to omit specific errors depending on their group (Rule)
   - [x] highlighting the error in the faulty code snippet
   - [x] explanation why the specific error was ommitted based on its Rule
+  - [x] syntax highlighting in terminal errors
   - [ ] possible fix suggestions
   - [x] suggestions for unknown and possible misspelled keywords
 - [ ] language server protocol
-  - [ ] diagnostics for full sqleibniz analysis
+  - [x] diagnostics for full sqleibniz analysis
   - [ ] snippets
   - [ ] intelligent completions
 - [ ] lua scripting
@@ -265,29 +266,28 @@ EXPLAIN QUERY PLAN 25;
 Passing the above file to `sqleibniz`:
 
 ```text
-warn: Ignoring the following diagnostics, according to 'leibniz.toml':
+warn: Ignoring the following diagnostics, as specified:
  -> NoContent
  -> NoStatements
  -> Unimplemented
  -> BadSqleibnizInstruction
-======================== ./tests/sqleibniz.sql =========================
+=============================== test.sql ===============================
 error[Syntax]: Unexpected Literal
- -> /home/teo/programming/sqleibniz/tests/sqleibniz.sql:12:20
- 10 | -- will cause a diagnostic
- 11 | -- incorrect, because EXPLAIN wants a sql stmt, not a literal
- 12 | EXPLAIN QUERY PLAN 25;
+ -> /home/teo/programming/sqleibniz/test.sql:13:20
+ 11 | -- will cause a diagnostic
+ 12 | -- incorrect, because EXPLAIN wants a sql stmt, not a literal
+ 13 | EXPLAIN QUERY PLAN 25;
     |                    ^^ error occurs here.
     |
     ~ note: Literal Number(25.0) disallowed at this point.
   * Syntax: The source file contains a structure with incorrect syntax
-
  docs: https://www.sqlite.org/syntax/sql-stmt.html
 =============================== Summary ================================
-[-] ./tests/sqleibniz.sql:
+[-] test.sql:
     1 Error(s) detected
     0 Error(s) ignored
 
-=> 0/1 Files verified successfully, 1 verification failed.
+=> 0/1 Files verified successfully, 1 verification failed
 ```
 
 `@sqleibniz::expect` is implemented by inserting a token with the type
@@ -325,9 +325,9 @@ parser callstack and the resulting AST:
 
 ```text
 sqleibniz master M :: cargo run --features trace -- -i test.sql
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
      Running `target/debug/sqleibniz -i test.sql`
-============================== CALL STACK ==============================
+============================== CALLSTACK ===============================
  ↳ Parser::parse(Some(Keyword(EXPLAIN)))
   ↳ Parser::sql_stmt_list(Some(Keyword(EXPLAIN)))
    ↳ Parser::sql_stmt_prefix(Some(Keyword(EXPLAIN)))
@@ -337,14 +337,14 @@ sqleibniz master M :: cargo run --features trace -- -i test.sql
      ↳ Parser::sql_stmt(Some(Keyword(VACUUM)))
       ↳ Parser::vacuum_stmt(Some(Keyword(VACUUM)))
 ================================= AST ==================================
-- Explain(Keyword(EXPLAIN))
- - Vacuum(Keyword(VACUUM)) [schema_name=None]  [filename=None]
-- Explain(Keyword(EXPLAIN))
- - Vacuum(Keyword(VACUUM)) [schema_name=Some(Token { ttype: Ident("my_big_schema"), start: 26, end: 39, line: 1 })]  [filename=Some(Token { ttype: String("repacked.db"), start: 45, end: 58, line: 1 })]
+- Explain(Keyword(EXPLAIN)) [child=Vacuum { t: Token { ttype: Keyword(VACUUM), start: 8, end: 14, line: 0 }, schema_name: None, filename: None }]
+- Explain(Keyword(EXPLAIN)) [child=Vacuum { t: Token { ttype: Keyword(VACUUM), start: 19, end: 25, line: 1 }, schema_name: Some(Token { ttype: Ident("my_big_schema"), start: 26, end: 39, line: 1 }), filename: Some(Token { ttype: String("
+repacked.db"), start: 45, end: 58, line: 1 }) }]
+took: [122.011µs]
 =============================== Summary ================================
 [+] test.sql:
     0 Error(s) detected
     0 Error(s) ignored
 
-=> [512.047µs] 1/1 Files verified successfully, 0 verification failed.
+=> 1/1 Files verified successfully, 0 verification failed.
 ```

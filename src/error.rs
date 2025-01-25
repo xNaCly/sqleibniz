@@ -2,7 +2,7 @@ use std::{fs, io::BufRead, path::PathBuf};
 
 use crate::{
     highlight::{builder, highlight_string},
-    types::rules::Rule,
+    types::{rules::Rule, Token},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,13 +24,22 @@ pub struct Error {
     pub doc_url: Option<&'static str>,
 }
 
+#[derive(Debug)]
 pub enum Color {
-    Red,
     Reset,
+
+    // used for error display:
+    Red,
     Blue,
     Cyan,
     Green,
     Yellow,
+
+    // used for syntax highlighting
+    Grey,
+    Magenta,
+    Orange,
+    White,
 }
 
 impl Color {
@@ -42,6 +51,10 @@ impl Color {
             Self::Green => "\x1b[92m",
             Self::Yellow => "\x1b[93m",
             Self::Cyan => "\x1b[96m",
+            Self::Grey => "\x1b[90m",
+            Self::Magenta => "\x1b[35m",
+            Self::Orange => "\x1b[33m",
+            Self::White => "\x1b[97m",
         }
     }
 }
@@ -67,7 +80,7 @@ pub fn print_str_colored(b: &mut builder::Builder, s: &str, c: Color) {
 }
 
 impl Error {
-    pub fn print(&mut self, b: &mut builder::Builder, content: &Vec<u8>) {
+    pub fn print(&mut self, b: &mut builder::Builder, content: &Vec<u8>, tokens: &[Token]) {
         print_str_colored(b, "error", Color::Red);
         b.write_char('[');
         print_str_colored(b, self.rule.name(), Color::Red);
@@ -105,20 +118,41 @@ impl Error {
         if self.line >= 2 {
             if let Some(first_line) = lines.get(self.line - 2) {
                 print_str_colored(b, &format!(" {:02} | ", self.line - 1), Color::Blue);
-                highlight_string(b, &[], &first_line);
+                highlight_string(
+                    b,
+                    &tokens
+                        .iter()
+                        .filter(|t| t.line == self.line - 2)
+                        .collect::<Vec<&Token>>(),
+                    &first_line,
+                );
                 b.write_char('\n');
             }
 
             if let Some(sec_line) = lines.get(self.line - 1) {
                 print_str_colored(b, &format!(" {:02} | ", self.line), Color::Blue);
-                highlight_string(b, &[], &sec_line);
+                highlight_string(
+                    b,
+                    &tokens
+                        .iter()
+                        .filter(|t| t.line == self.line - 1)
+                        .collect::<Vec<&Token>>(),
+                    &sec_line,
+                );
                 b.write_char('\n');
             }
         }
 
         let offending_line = String::from(lines.get(self.line).unwrap());
         print_str_colored(b, &format!(" {:02} | ", self.line + 1), Color::Blue);
-        highlight_string(b, &[], &offending_line);
+        highlight_string(
+            b,
+            &tokens
+                .iter()
+                .filter(|t| t.line == self.line)
+                .collect::<Vec<&Token>>(),
+            &offending_line,
+        );
         print_str_colored(b, "\n    |", Color::Blue);
 
         let mut repeat = 1;
@@ -155,13 +189,27 @@ impl Error {
 
         if let Some(first_line) = lines.get(self.line + 1) {
             print_str_colored(b, &format!(" {:02} | ", self.line + 2), Color::Blue);
-            highlight_string(b, &[], &first_line);
+            highlight_string(
+                b,
+                &tokens
+                    .iter()
+                    .filter(|t| t.line == self.line + 1)
+                    .collect::<Vec<&Token>>(),
+                &first_line,
+            );
             b.write_char('\n');
         }
 
         if let Some(sec_line) = lines.get(self.line + 2) {
             print_str_colored(b, &format!(" {:02} | ", self.line + 3), Color::Blue);
-            highlight_string(b, &[], &sec_line);
+            highlight_string(
+                b,
+                &tokens
+                    .iter()
+                    .filter(|t| t.line == self.line + 2)
+                    .collect::<Vec<&Token>>(),
+                &sec_line,
+            );
             b.write_char('\n');
         }
 
@@ -177,7 +225,6 @@ impl Error {
         b.write_char('\n');
 
         if self.doc_url.is_some() {
-            b.write_char('\n');
             print_str_colored(b, " docs", Color::Blue);
             b.write_str(": ");
             b.write_str(self.doc_url.unwrap());

@@ -185,22 +185,14 @@ fn main() {
 
         if !toks.is_empty() {
             #[cfg(feature = "trace")]
-            error::print_str_colored(
-                &mut error_string_builder,
-                &format!("{:=^72}\n", " CALL STACK "),
-                error::Color::Blue,
-            );
-            let mut parser = parser::Parser::new(toks, file.name.as_str());
+            println!("{:=^72}", " CALLSTACK ");
+            let mut parser = parser::Parser::new(toks.clone(), file.name.as_str());
             #[cfg(not(feature = "trace"))]
             let _ = parser.parse();
             #[cfg(feature = "trace")]
             {
                 let ast = parser.parse();
-                error::print_str_colored(
-                    &mut error_string_builder,
-                    &format!("{:=^72}\n", " AST "),
-                    error::Color::Blue,
-                );
+                println!("{:=^72}", " AST ");
                 for node in ast {
                     if let Some(node) = node {
                         node.display(0);
@@ -231,10 +223,12 @@ fn main() {
             );
             let error_count = processed_errors.len();
             for (i, e) in processed_errors.iter().enumerate() {
-                (**e).clone().print(&mut error_string_builder, &content);
+                (**e)
+                    .clone()
+                    .print(&mut error_string_builder, &content, &toks);
 
                 if i + 1 != error_count {
-                    println!()
+                    error_string_builder.write_char('\n');
                 }
             }
         }
@@ -297,7 +291,7 @@ fn main() {
     print_str_colored(&mut error_string_builder, "=>", error::Color::Blue);
     let verified = files.iter().filter(|f| f.errors == 0).count();
     #[cfg(feature = "trace")]
-    print!(" [{:?}]", took);
+    println!("took: [{:?}]", took);
     error_string_builder.write_string(format!(
         " {}/{} Files verified successfully, {} verification failed.\n",
         verified,

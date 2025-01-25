@@ -32,6 +32,11 @@ impl Builder {
         self.buffer.append(&mut string.into_bytes())
     }
 
+    pub fn write_buf(&mut self, buf: Vec<u8>) {
+        let mut b = buf;
+        self.buffer.append(&mut b)
+    }
+
     /// string consumes the Builder
     pub fn string(self) -> String {
         match String::from_utf8(self.buffer) {

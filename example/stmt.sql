@@ -2,13 +2,13 @@
 /* stmt.sql displays the current progress of sqleibniz by highlighting all currently available statements. */
 
 -- https://www.sqlite.org/lang_explain.html
-EXPLAIN VACUUM;
+EXPLAIN VACUUM 25e19289;
 EXPLAIN QUERY PLAN VACUUM;
 
 -- https://www.sqlite.org/lang_vacuum.html
 VACUUM;
 VACUUM schema_name;
-VACUUM INTO 'filename';
+VACUUM INTO 'filename' ?;
 VACUUM schema_name INTO 'filename';
 
 /* ---- https://www.sqlite.org/lang_transaction.html ---- */
