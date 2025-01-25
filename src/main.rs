@@ -174,6 +174,7 @@ fn main() {
                         &format!("failed to read file '{}': {}", file.name, err),
                     );
                 }
+                print!("{}", error_string_builder.string());
                 exit(1);
             }
         };
@@ -304,7 +305,9 @@ fn main() {
         files.len() - verified
     ));
 
-    print!("{}", error_string_builder.string());
+    if !args.silent {
+        print!("{}", error_string_builder.string());
+    }
 
     if verified != files.len() {
         exit(1);

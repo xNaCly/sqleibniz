@@ -1,4 +1,4 @@
-use std::{fmt::Display, string::FromUtf8Error};
+use std::fmt::Display;
 
 /// builder implements a string builder, in its api similar to [strings.Builder](https://pkg.go.dev/strings#Builder)
 pub struct Builder {
