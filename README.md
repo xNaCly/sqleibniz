@@ -290,6 +290,11 @@ error[Syntax]: Unexpected Literal
 => 0/1 Files verified successfully, 1 verification failed
 ```
 
+Or syntax highlighted via [`highlight::highlight`](https://github.com/xNaCly/sqleibniz/blob/master/src/highlight/mod.rs#L50) for the terminal:
+
+![rendered by the terminal](https://github.com/user-attachments/assets/dd349d59-1107-4421-82e4-f95549b43e85)
+
+
 `@sqleibniz::expect` is implemented by inserting a token with the type
 `Type::InstructionExpect`. The parser encounters this token and consumes all
 token until a token with the type `Type::Semicolon` is found. Thus sqleibniz is
