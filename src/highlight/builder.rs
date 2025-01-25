@@ -29,7 +29,7 @@ impl Builder {
     }
 
     pub fn write_string(&mut self, string: String) {
-        self.write_str(&string);
+        self.buffer.append(&mut string.into_bytes())
     }
 
     /// string consumes the Builder
