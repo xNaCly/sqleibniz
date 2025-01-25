@@ -5,12 +5,15 @@ use std::{fs, process::exit, vec};
 
 use clap::Parser;
 use error::{print_str_colored, warn};
+use highlight::builder;
 use lexer::Lexer;
 use types::config::Config;
 use types::rules::Rule;
 
 /// error does formatting and highlighting for errors
 mod error;
+/// highlight implements logic for highlighting tokens found in a string
+mod highlight;
 /// lev implements the levenshtein distance for all sql keywords, this is used to recommend a keyword based on a misspelled word or any
 /// unknown keyword at an arbitrary location in the source statement - mainly used at the start of a new statement
 mod lev;
@@ -96,9 +99,15 @@ fn main() {
         return;
     }
 
+    let mut error_string_builder = builder::Builder::new();
+
     if args.paths.is_empty() {
         if !args.silent {
-            error::err("no source file(s) provided, exiting");
+            error::err(
+                &mut error_string_builder,
+                "no source file(s) provided, exiting",
+            );
+            println!("{}", error_string_builder.string())
         }
         exit(1);
     }
@@ -116,7 +125,7 @@ fn main() {
             Ok(conf) => config = conf,
             Err(err) => {
                 if !args.silent {
-                    error::warn(&err.to_string());
+                    error::warn(&mut error_string_builder, &err.to_string());
                 }
             }
         }
@@ -128,11 +137,17 @@ fn main() {
     }
 
     if !config.disabled_rules.is_empty() && !args.silent {
-        warn("Ignoring the following diagnostics, as specified:");
+        let mut ignore_buffer = builder::Builder::new();
+        warn(
+            &mut ignore_buffer,
+            "Ignoring the following diagnostics, as specified:",
+        );
         for rule in &config.disabled_rules {
-            print_str_colored(" -> ", error::Color::Blue);
-            println!("{}", rule.name())
+            print_str_colored(&mut ignore_buffer, " -> ", error::Color::Blue);
+            ignore_buffer.write_str(rule.name());
+            ignore_buffer.write_char('\n');
         }
+        print!("{}", ignore_buffer.string())
     }
 
     let mut files = args
@@ -154,7 +169,10 @@ fn main() {
             Ok(c) => c,
             Err(err) => {
                 if !args.silent {
-                    error::err(&format!("failed to read file '{}': {}", file.name, err));
+                    error::err(
+                        &mut error_string_builder,
+                        &format!("failed to read file '{}': {}", file.name, err),
+                    );
                 }
                 exit(1);
             }
@@ -166,14 +184,22 @@ fn main() {
 
         if !toks.is_empty() {
             #[cfg(feature = "trace")]
-            error::print_str_colored(&format!("{:=^72}\n", " CALL STACK "), error::Color::Blue);
+            error::print_str_colored(
+                &mut error_string_builder,
+                &format!("{:=^72}\n", " CALL STACK "),
+                error::Color::Blue,
+            );
             let mut parser = parser::Parser::new(toks, file.name.as_str());
             #[cfg(not(feature = "trace"))]
             let _ = parser.parse();
             #[cfg(feature = "trace")]
             {
                 let ast = parser.parse();
-                error::print_str_colored(&format!("{:=^72}\n", " AST "), error::Color::Blue);
+                error::print_str_colored(
+                    &mut error_string_builder,
+                    &format!("{:=^72}\n", " AST "),
+                    error::Color::Blue,
+                );
                 for node in ast {
                     if let Some(node) = node {
                         node.display(0);
@@ -198,12 +224,14 @@ fn main() {
 
         if !processed_errors.is_empty() && !args.silent {
             error::print_str_colored(
+                &mut error_string_builder,
                 &format!("{:=^72}\n", format!(" {} ", file.name)),
                 error::Color::Blue,
             );
             let error_count = processed_errors.len();
             for (i, e) in processed_errors.iter().enumerate() {
-                (**e).clone().print(&content);
+                (**e).clone().print(&mut error_string_builder, &content);
+
                 if i + 1 != error_count {
                     println!()
                 }
@@ -223,9 +251,14 @@ fn main() {
         return;
     }
 
-    error::print_str_colored(&format!("{:=^72}\n", " Summary "), error::Color::Blue);
+    error::print_str_colored(
+        &mut error_string_builder,
+        &format!("{:=^72}\n", " Summary "),
+        error::Color::Blue,
+    );
     for file in &files {
         error::print_str_colored(
+            &mut error_string_builder,
             &format!(
                 "[{}]",
                 match file.errors {
@@ -238,33 +271,40 @@ fn main() {
                 _ => error::Color::Red,
             },
         );
-        println!(" {}:", file.name);
-        match file.errors {
-            0 => println!("    {} Error(s) detected", file.errors,),
-            _ => error::print_str_colored(
-                &format!("    {} Error(s) detected\n", file.errors),
-                error::Color::Red,
-            ),
-        }
-        match file.ignored_errors {
-            0 => println!("    {} Error(s) ignored", file.ignored_errors),
-            _ => error::print_str_colored(
-                &format!("    {} Error(s) ignored\n", file.ignored_errors),
-                error::Color::Yellow,
-            ),
-        }
+        error_string_builder.write_char(' ');
+        error_string_builder.write_str(&file.name);
+        error_string_builder.write_char(':');
+        error_string_builder.write_char('\n');
+        error::print_str_colored(
+            &mut error_string_builder,
+            &format!("    {} Error(s) detected\n", file.errors),
+            match file.errors {
+                0 => error::Color::Green,
+                _ => error::Color::Red,
+            },
+        );
+        error::print_str_colored(
+            &mut error_string_builder,
+            &format!("    {} Error(s) ignored\n", file.ignored_errors),
+            match file.ignored_errors {
+                0 => error::Color::Green,
+                _ => error::Color::Yellow,
+            },
+        )
     }
-    println!();
-    print_str_colored("=>", error::Color::Blue);
+    error_string_builder.write_char('\n');
+    print_str_colored(&mut error_string_builder, "=>", error::Color::Blue);
     let verified = files.iter().filter(|f| f.errors == 0).count();
     #[cfg(feature = "trace")]
     print!(" [{:?}]", took);
-    println!(
-        " {}/{} Files verified successfully, {} verification failed.",
+    error_string_builder.write_string(format!(
+        " {}/{} Files verified successfully, {} verification failed.\n",
         verified,
         files.len(),
         files.len() - verified
-    );
+    ));
+
+    print!("{}", error_string_builder.string());
 
     if verified != files.len() {
         exit(1);

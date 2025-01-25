@@ -1,6 +1,9 @@
 use std::{fs, io::BufRead, path::PathBuf};
 
-use crate::types::rules::Rule;
+use crate::{
+    highlight::{builder, highlight_string},
+    types::rules::Rule,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ImprovedLine {
@@ -43,52 +46,53 @@ impl Color {
     }
 }
 
-pub fn warn(s: &str) {
-    print_str_colored("warn", Color::Yellow);
-    println!(": {}", s);
+pub fn warn(b: &mut builder::Builder, s: &str) {
+    print_str_colored(b, "warn", Color::Yellow);
+    b.write_str(": ");
+    b.write_str(s);
+    b.write_char('\n');
 }
 
-pub fn err(s: &str) {
-    print_str_colored("error", Color::Red);
-    println!(": {}", s);
+pub fn err(b: &mut builder::Builder, s: &str) {
+    print_str_colored(b, "error", Color::Red);
+    b.write_str(": ");
+    b.write_str(s);
+    b.write_char('\n');
 }
 
-pub fn print_str_colored(s: &str, c: Color) {
-    print!("{}{}{}", c.as_str(), s, Color::Reset.as_str());
-}
-
-macro_rules! print_str {
-    ($s:expr) => {
-        print!("{}", $s);
-    };
+pub fn print_str_colored(b: &mut builder::Builder, s: &str, c: Color) {
+    b.write_str(c.as_str());
+    b.write_str(s);
+    b.write_str(Color::Reset.as_str());
 }
 
 impl Error {
-    pub fn print(&mut self, content: &Vec<u8>) {
-        print_str_colored("error", Color::Red);
-        print_str!("[");
-        print_str_colored(self.rule.name(), Color::Red);
-        print_str!("]: ");
-        print_str!(&self.msg);
-        println!();
+    pub fn print(&mut self, b: &mut builder::Builder, content: &Vec<u8>) {
+        print_str_colored(b, "error", Color::Red);
+        b.write_char('[');
+        print_str_colored(b, self.rule.name(), Color::Red);
+        b.write_str("]: ");
+        b.write_str(&self.msg);
+        b.write_char('\n');
 
         if content.is_empty() {
             return;
         }
 
-        print_str_colored(" -> ", Color::Blue);
+        print_str_colored(b, " -> ", Color::Blue);
         // the file is not absolut, this resolves symlinks and stuff
         let file_path = match fs::canonicalize(PathBuf::from(&self.file)) {
             Ok(path) => path.into_os_string().into_string().unwrap_or_default(),
             _ => self.file.clone(),
         };
-        print_str_colored(&file_path, Color::Cyan);
+        print_str_colored(b, &file_path, Color::Cyan);
         // zero based indexing, we need human friendly numbers here
         print_str_colored(
+            b,
             &format!(":{}:{}", self.line + 1, self.start + 1),
             Color::Yellow,
         );
-        println!();
+        b.write_char('\n');
 
         let lines = content.lines().map(|x| x.unwrap()).collect::<Vec<_>>();
 
@@ -100,22 +104,22 @@ impl Error {
 
         if self.line >= 2 {
             if let Some(first_line) = lines.get(self.line - 2) {
-                print_str_colored(&format!(" {:02} | ", self.line - 1), Color::Blue);
-                print_str!(first_line);
-                println!()
+                print_str_colored(b, &format!(" {:02} | ", self.line - 1), Color::Blue);
+                highlight_string(b, &[], &first_line);
+                b.write_char('\n');
             }
 
             if let Some(sec_line) = lines.get(self.line - 1) {
-                print_str_colored(&format!(" {:02} | ", self.line), Color::Blue);
-                print_str!(sec_line);
-                println!()
+                print_str_colored(b, &format!(" {:02} | ", self.line), Color::Blue);
+                highlight_string(b, &[], &sec_line);
+                b.write_char('\n');
             }
         }
 
         let offending_line = String::from(lines.get(self.line).unwrap());
-        print_str_colored(&format!(" {:02} | ", self.line + 1), Color::Blue);
-        print_str!(offending_line);
-        print_str_colored("\n    |", Color::Blue);
+        print_str_colored(b, &format!(" {:02} | ", self.line + 1), Color::Blue);
+        highlight_string(b, &[], &offending_line);
+        print_str_colored(b, "\n    |", Color::Blue);
 
         let mut repeat = 1;
         if self.end > self.start {
@@ -123,6 +127,7 @@ impl Error {
         }
 
         print_str_colored(
+            b,
             &format!(
                 " {}{} error occurs here.\n",
                 " ".repeat(self.start),
@@ -149,34 +154,34 @@ impl Error {
         // }
 
         if let Some(first_line) = lines.get(self.line + 1) {
-            print_str_colored(&format!(" {:02} | ", self.line + 2), Color::Blue);
-            print_str!(first_line);
-            println!()
+            print_str_colored(b, &format!(" {:02} | ", self.line + 2), Color::Blue);
+            highlight_string(b, &[], &first_line);
+            b.write_char('\n');
         }
 
         if let Some(sec_line) = lines.get(self.line + 2) {
-            print_str_colored(&format!(" {:02} | ", self.line + 3), Color::Blue);
-            print_str!(sec_line);
-            println!()
+            print_str_colored(b, &format!(" {:02} | ", self.line + 3), Color::Blue);
+            highlight_string(b, &[], &sec_line);
+            b.write_char('\n');
         }
 
-        print_str_colored("    |\n", Color::Blue);
-        print_str_colored("    ~ note: ", Color::Blue);
-        print_str!(self.note);
-        println!();
+        print_str_colored(b, "    |\n", Color::Blue);
+        print_str_colored(b, "    ~ note: ", Color::Blue);
+        b.write_str(&self.note);
+        b.write_char('\n');
 
-        print_str_colored("  * ", Color::Blue);
-        print_str_colored(self.rule.name(), Color::Blue);
-        print_str!(": ");
-        print_str!(self.rule.description());
-        println!();
+        print_str_colored(b, "  * ", Color::Blue);
+        print_str_colored(b, self.rule.name(), Color::Blue);
+        b.write_str(": ");
+        b.write_str(self.rule.description());
+        b.write_char('\n');
 
         if self.doc_url.is_some() {
-            println!();
-            print_str_colored(" docs", Color::Blue);
-            print_str!(": ");
-            print_str!(self.doc_url.unwrap());
-            println!();
+            b.write_char('\n');
+            print_str_colored(b, " docs", Color::Blue);
+            b.write_str(": ");
+            b.write_str(self.doc_url.unwrap());
+            b.write_char('\n');
         }
     }
 }
