@@ -41,7 +41,7 @@ impl Builder {
     pub fn string(self) -> String {
         match String::from_utf8(self.buffer) {
             Ok(string) => string,
-            Err(_) => String::from("<failed to stringify Builder::buffer"),
+            Err(_) => String::from("<failed to stringify Builder::buffer>"),
         }
     }
 }

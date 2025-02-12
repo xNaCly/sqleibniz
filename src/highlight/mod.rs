@@ -44,10 +44,8 @@ impl Highlight for Color {
     }
 }
 
-/// highlight_string performs syntax highlighting on the given [line], depending on the tokens in
-/// [token_on_line]. The generated output is writen to the [builder::Builder], thats passed into
-/// the function
-pub fn highlight_string(builder: &mut builder::Builder, token_on_line: &[&Token], line: &str) {
+/// highlight performs syntax highlighting on the given [line], depending on the tokens in [token_on_line]. The generated output is writen to the [builder::Builder], thats passed into the function
+pub fn highlight(builder: &mut builder::Builder, token_on_line: &[&Token], line: &str) {
     // no tokens on a line means: either comment or empty line
     if token_on_line.len() == 0 {
         builder.write_str(Color::Grey.as_str());
@@ -60,9 +58,9 @@ pub fn highlight_string(builder: &mut builder::Builder, token_on_line: &[&Token]
 
     let mut buf = line
         .split("")
-        .map(|s| s.as_bytes().to_vec())
         .skip(1)
         .take(line.len())
+        .map(|s| s.as_bytes().to_vec())
         .collect::<Vec<Vec<u8>>>();
 
     let original_length = buf.len();

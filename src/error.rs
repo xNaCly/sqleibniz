@@ -1,7 +1,7 @@
 use std::{fs, io::BufRead, path::PathBuf};
 
 use crate::{
-    highlight::{builder, highlight_string},
+    highlight::{builder, highlight},
     types::{rules::Rule, Token},
 };
 
@@ -118,7 +118,7 @@ impl Error {
         if self.line >= 2 {
             if let Some(first_line) = lines.get(self.line - 2) {
                 print_str_colored(b, &format!(" {:02} | ", self.line - 1), Color::Blue);
-                highlight_string(
+                highlight(
                     b,
                     &tokens
                         .iter()
@@ -131,7 +131,7 @@ impl Error {
 
             if let Some(sec_line) = lines.get(self.line - 1) {
                 print_str_colored(b, &format!(" {:02} | ", self.line), Color::Blue);
-                highlight_string(
+                highlight(
                     b,
                     &tokens
                         .iter()
@@ -145,7 +145,7 @@ impl Error {
 
         let offending_line = String::from(lines.get(self.line).unwrap());
         print_str_colored(b, &format!(" {:02} | ", self.line + 1), Color::Blue);
-        highlight_string(
+        highlight(
             b,
             &tokens
                 .iter()
@@ -189,7 +189,7 @@ impl Error {
 
         if let Some(first_line) = lines.get(self.line + 1) {
             print_str_colored(b, &format!(" {:02} | ", self.line + 2), Color::Blue);
-            highlight_string(
+            highlight(
                 b,
                 &tokens
                     .iter()
@@ -202,7 +202,7 @@ impl Error {
 
         if let Some(sec_line) = lines.get(self.line + 2) {
             print_str_colored(b, &format!(" {:02} | ", self.line + 3), Color::Blue);
-            highlight_string(
+            highlight(
                 b,
                 &tokens
                     .iter()
