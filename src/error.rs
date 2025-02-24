@@ -124,7 +124,7 @@ impl Error {
                         .iter()
                         .filter(|t| t.line == self.line - 2)
                         .collect::<Vec<&Token>>(),
-                    &first_line,
+                    first_line,
                 );
                 b.write_char('\n');
             }
@@ -137,13 +137,13 @@ impl Error {
                         .iter()
                         .filter(|t| t.line == self.line - 1)
                         .collect::<Vec<&Token>>(),
-                    &sec_line,
+                    sec_line,
                 );
                 b.write_char('\n');
             }
         }
 
-        let offending_line = String::from(lines.get(self.line).unwrap());
+        let offending_line = lines.get(self.line).unwrap();
         print_str_colored(b, &format!(" {:02} | ", self.line + 1), Color::Blue);
         highlight(
             b,
@@ -151,7 +151,7 @@ impl Error {
                 .iter()
                 .filter(|t| t.line == self.line)
                 .collect::<Vec<&Token>>(),
-            &offending_line,
+            offending_line,
         );
         print_str_colored(b, "\n    |", Color::Blue);
 
@@ -195,7 +195,7 @@ impl Error {
                     .iter()
                     .filter(|t| t.line == self.line + 1)
                     .collect::<Vec<&Token>>(),
-                &first_line,
+                first_line,
             );
             b.write_char('\n');
         }
@@ -208,7 +208,7 @@ impl Error {
                     .iter()
                     .filter(|t| t.line == self.line + 2)
                     .collect::<Vec<&Token>>(),
-                &sec_line,
+                sec_line,
             );
             b.write_char('\n');
         }

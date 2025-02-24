@@ -5,7 +5,7 @@ use crate::{lsp::error::LspError, types::Token};
 
 pub fn handle(
     connection: &Connection,
-    tokens: &Vec<Token>,
+    tokens: &[Token],
     id: RequestId,
     params: HoverParams,
 ) -> Result<(), LspError> {

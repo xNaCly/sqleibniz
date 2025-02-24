@@ -95,7 +95,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is(&self, t: Type) -> bool {
-        self.cur().map_or(false, |tok| tok.ttype == t)
+        self.cur().is_some_and(|tok| tok.ttype == t)
     }
 
     fn is_keyword(&self, keyword: Keyword) -> bool {
@@ -1375,7 +1375,7 @@ impl<'a> Parser<'a> {
 
         // we got a type_name: https://www.sqlite.org/syntax/type-name.html
         while let Type::Ident(name) = &self.cur()?.ttype {
-            def.type_name = Some(SqliteStorageClass::from_str(&name));
+            def.type_name = Some(SqliteStorageClass::from_str(name));
             // skip ident
             self.advance();
             if self.is(Type::BraceLeft) {

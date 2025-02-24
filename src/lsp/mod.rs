@@ -92,7 +92,7 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                                 }
                                 continue;
                             }
-                            Err(err @ _) => panic!("{err:?}"),
+                            Err(err) => panic!("{err:?}"),
                         };
                     }
                     "textDocument/diagnostic" => {
@@ -108,7 +108,7 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                                 }
                                 continue;
                             }
-                            Err(err @ _) => panic!("{err:?}"),
+                            Err(err) => panic!("{err:?}"),
                         };
                     }
                     _ => lsp_log!("unsupported method"),
@@ -132,7 +132,7 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                             let _ = p.parse();
                             errors.append(&mut p.errors);
                         }
-                        Err(err @ _) => panic!("failed to cast notification: {err:?}"),
+                        Err(err) => panic!("failed to cast notification: {err:?}"),
                     };
                 }
                 "textDocument/didOpen" => {
@@ -148,7 +148,7 @@ fn event_loop(connection: Connection, params: serde_json::Value) -> Result<(), L
                             let _ = p.parse();
                             errors.append(&mut p.errors);
                         }
-                        Err(err @ _) => panic!("failed to cast notification: {err:?}"),
+                        Err(err) => panic!("failed to cast notification: {err:?}"),
                     };
                 }
                 _ => lsp_log!("unsupported method"),

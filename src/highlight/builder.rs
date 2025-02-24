@@ -1,15 +1,12 @@
 use std::fmt::Display;
 
 /// builder implements a string builder, in its api similar to [strings.Builder](https://pkg.go.dev/strings#Builder)
+#[derive(Default)]
 pub struct Builder {
     buffer: Vec<u8>,
 }
 
 impl Builder {
-    pub fn new() -> Self {
-        Builder { buffer: Vec::new() }
-    }
-
     pub fn with_capacity(cap: usize) -> Self {
         Builder {
             buffer: Vec::with_capacity(cap),

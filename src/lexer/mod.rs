@@ -247,7 +247,7 @@ impl<'a> Lexer<'a> {
                         && !(self.next_is('e') || self.next_is('E'))
                         && !self
                             .next()
-                            .is_some_and(|c| matches!(c, '_') || c.is_digit(10))
+                            .is_some_and(|c| matches!(c, '_') || c.is_ascii_digit())
                     {
                         r.push(Token {
                             ttype: Type::Dot,

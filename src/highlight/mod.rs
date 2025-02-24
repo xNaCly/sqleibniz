@@ -47,7 +47,7 @@ impl Highlight for Color {
 /// highlight performs syntax highlighting on the given [line], depending on the tokens in [token_on_line]. The generated output is writen to the [builder::Builder], thats passed into the function
 pub fn highlight(builder: &mut builder::Builder, token_on_line: &[&Token], line: &str) {
     // no tokens on a line means: either comment or empty line
-    if token_on_line.len() == 0 {
+    if token_on_line.is_empty() {
         builder.write_str(Color::Grey.as_str());
         builder.write_str(line);
         builder.write_str(Color::Reset.as_str());

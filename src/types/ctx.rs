@@ -27,7 +27,7 @@ impl mlua::IntoLua for HookContext {
     fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
         let table = lua.create_table()?;
         table.set("kind", self.kind)?;
-        table.set("text", self.content.unwrap_or_else(|| String::new()))?;
+        table.set("text", self.content.unwrap_or_default())?;
         table.set("children", self.children)?;
         lua.pack(table)
     }

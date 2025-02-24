@@ -99,7 +99,7 @@ fn main() {
         return;
     }
 
-    let mut error_string_builder = builder::Builder::new();
+    let mut error_string_builder = builder::Builder::default();
 
     if args.paths.is_empty() {
         if !args.silent {
@@ -137,7 +137,7 @@ fn main() {
     }
 
     if !config.disabled_rules.is_empty() && !args.silent {
-        let mut ignore_buffer = builder::Builder::new();
+        let mut ignore_buffer = builder::Builder::default();
         warn(
             &mut ignore_buffer,
             "Ignoring the following diagnostics, as specified:",

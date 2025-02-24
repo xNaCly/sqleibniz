@@ -5,9 +5,9 @@
 /// see: https://en.wikipedia.org/wiki/Levenshtein_distance
 pub fn distance(a: &[u8], b: &[u8]) -> usize {
     // TODO: this implementation is naive at best, use the matrix approach
-    if b.len() == 0 {
+    if b.is_empty() {
         a.len()
-    } else if a.len() == 0 {
+    } else if a.is_empty() {
         b.len()
     } else if a[0] == b[0] {
         return distance(
