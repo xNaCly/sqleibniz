@@ -107,7 +107,7 @@ fn main() {
                 &mut error_string_builder,
                 "no source file(s) provided, exiting",
             );
-            println!("{}", error_string_builder.string())
+            print!("{}", error_string_builder.string())
         }
         exit(1);
     }
